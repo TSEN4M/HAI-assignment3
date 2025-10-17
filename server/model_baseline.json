@@ -1,0 +1,48 @@
+{
+  "schema": {
+    "features": [
+      "Admission grade",
+      "Age at enrollment",
+      "Scholarship holder",
+      "Tuition fees up to date",
+      "Displaced",
+      "Educational special needs",
+      "Debtor",
+      "International",
+      "Unemployment rate",
+      "Inflation rate",
+      "GDP",
+      "Gender"
+    ]
+  },
+  "logreg": {
+    "coef": [
+      0.017626985409028295,
+      -0.04211229470031427,
+      1.414978759274385,
+      2.891963904803735,
+      0.11750046819859097,
+      -0.5396287242594325,
+      -1.1434094657524514,
+      0.8692636068494324,
+      0.0009758579720998212,
+      -0.02377031214609554,
+      0.043856979896664365,
+      -0.8432674327108237
+    ],
+    "intercept": -3.3362323430204652,
+    "classes": [
+      0,
+      1
+    ]
+  },
+  "meta": {
+    "model_type": "baseline",
+    "trained_on": "UCI Student Dropout (Enrolled removed)",
+    "target_map": {
+      "Dropout": 0,
+      "Graduate": 1
+    },
+    "note": "Logistic Regression with Gender"
+  }
+}

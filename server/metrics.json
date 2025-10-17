@@ -1,0 +1,54 @@
+[
+  {
+    "model_type": "baseline",
+    "accuracy": 0.753,
+    "precision": 0.756,
+    "recall": 0.878,
+    "f1": 0.812,
+    "spd": -0.375,
+    "eod": -0.265,
+    "female_precision": 0.647,
+    "female_recall": 0.679,
+    "male_precision": 0.787,
+    "male_recall": 0.944
+  },
+  {
+    "model_type": "drop_gender",
+    "accuracy": 0.741,
+    "precision": 0.737,
+    "recall": 0.893,
+    "f1": 0.808,
+    "spd": -0.169,
+    "eod": -0.091,
+    "female_precision": 0.579,
+    "female_recall": 0.824,
+    "male_precision": 0.803,
+    "male_recall": 0.916
+  },
+  {
+    "model_type": "reweighted",
+    "accuracy": 0.745,
+    "precision": 0.734,
+    "recall": 0.910,
+    "f1": 0.813,
+    "spd": -0.113,
+    "eod": -0.017,
+    "female_precision": 0.580,
+    "female_recall": 0.897,
+    "male_precision": 0.804,
+    "male_recall": 0.914
+  },
+  {
+    "model_type": "calibrated",
+    "accuracy": 0.752,
+    "precision": 0.757,
+    "recall": 0.873,
+    "f1": 0.811,
+    "spd": -0.193,
+    "eod": -0.106,
+    "female_precision": 0.606,
+    "female_recall": 0.793,
+    "male_precision": 0.816,
+    "male_recall": 0.900
+  }
+]

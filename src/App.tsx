@@ -5,10 +5,12 @@ import { PredictionResultDisplay } from './components/PredictionResult';
 import { ModelPerformance } from './components/ModelPerformance';
 import { StudentData, ModelType, PredictionResult } from './types';
 
+const API_BASE = import.meta.env.VITE_SUPABASE_URL;
+
 function App() {
   const [activeTab, setActiveTab] = useState<'predict' | 'performance'>('predict');
   const [prediction, setPrediction] = useState<PredictionResult | null>(null);
-  const [selectedModel, setSelectedModel] = useState<string>('');
+  const [selectedModel, setSelectedModel] = useState<string>(''); // keeping as label string
   const [loading, setLoading] = useState(false);
 
   const handlePrediction = async (data: StudentData, modelType: ModelType) => {
@@ -16,12 +18,12 @@ function App() {
     setPrediction(null);
 
     try {
-      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/predict-dropout`;
+      const apiUrl = `${API_BASE}/functions/v1/predict-dropout`;
 
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          // Authorization header not needed for local Node backend; safe to omit
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -31,12 +33,13 @@ function App() {
       });
 
       if (!response.ok) {
-        throw new Error('Prediction failed');
+        const msg = await response.text();
+        throw new Error(msg || 'Prediction failed');
       }
 
-      const result = await response.json();
+      const result: PredictionResult = await response.json();
       setPrediction(result);
-      setSelectedModel(getModelName(modelType));
+      setSelectedModel(getModelName(modelType)); // store friendly label for display
     } catch (error) {
       console.error('Error making prediction:', error);
       alert('Failed to make prediction. Please try again.');
@@ -163,3 +166,4 @@ function App() {
 }
 
 export default App;
+

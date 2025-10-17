@@ -3,20 +3,28 @@ import { PredictionResult } from '../types';
 
 interface PredictionResultProps {
   result: PredictionResult;
-  modelType: string;
+  modelType: string; // display name from parent (e.g., "Reweighted Model (Recommended)")
 }
 
 export function PredictionResultDisplay({ result, modelType }: PredictionResultProps) {
   const isGraduate = result.prediction === 'Graduate';
-  const confidencePercent = (result.confidence * 100).toFixed(1);
+  // confidence is the model's probability for the predicted class
+  const confidencePct = (result.confidence * 100).toFixed(1);
 
   return (
     <div className="bg-white rounded-lg shadow-lg p-6 border-2 border-gray-200">
-      <h2 className="text-xl font-bold text-gray-900 mb-4">Prediction Result</h2>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-bold text-gray-900">Prediction Result</h2>
+        <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-700 border border-gray-200">
+          {modelType}
+        </span>
+      </div>
 
-      <div className={`rounded-lg p-6 mb-4 ${
-        isGraduate ? 'bg-green-50 border-2 border-green-200' : 'bg-amber-50 border-2 border-amber-200'
-      }`}>
+      <div
+        className={`rounded-lg p-6 mb-4 ${
+          isGraduate ? 'bg-green-50 border-2 border-green-200' : 'bg-amber-50 border-2 border-amber-200'
+        }`}
+      >
         <div className="flex items-center gap-3 mb-3">
           {isGraduate ? (
             <CheckCircle className="w-8 h-8 text-green-600" />
@@ -25,25 +33,25 @@ export function PredictionResultDisplay({ result, modelType }: PredictionResultP
           )}
           <div>
             <div className="text-sm font-medium text-gray-600">Predicted Outcome</div>
-            <div className={`text-2xl font-bold ${
-              isGraduate ? 'text-green-700' : 'text-amber-700'
-            }`}>
+            <div className={`text-2xl font-bold ${isGraduate ? 'text-green-700' : 'text-amber-700'}`}>
               {result.prediction}
             </div>
           </div>
         </div>
 
+        {/* Single confidence bar toward the predicted class */}
         <div className="mt-4">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium text-gray-700">Model Confidence</span>
-            <span className="text-sm font-bold text-gray-900">{confidencePercent}%</span>
+            <span className="text-sm font-bold text-gray-900">{confidencePct}%</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-3">
             <div
               className={`h-3 rounded-full transition-all ${
                 isGraduate ? 'bg-green-600' : 'bg-amber-600'
               }`}
-              style={{ width: `${confidencePercent}%` }}
+              style={{ width: `${confidencePct}%` }}
+              title={`${result.prediction}: ${confidencePct}%`}
             />
           </div>
         </div>
@@ -57,11 +65,11 @@ export function PredictionResultDisplay({ result, modelType }: PredictionResultP
             <TrendingDown className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
           )}
           <div className="text-sm text-blue-900">
-            <p className="font-semibold mb-1">Model Used: {modelType}</p>
+            <p className="font-semibold mb-1">Interpretation</p>
             <p>
               {isGraduate
-                ? 'The model predicts this student is likely to graduate. However, this is a prediction and should be used to provide support, not make final decisions.'
-                : 'The model indicates elevated dropout risk. This student may benefit from additional academic support, counseling, or financial assistance to improve outcomes.'}
+                ? 'The model estimates a higher likelihood of graduation. Use this insight to keep reinforcing supports.'
+                : 'The model indicates elevated dropout risk. Consider proactive advising, financial-aid check-ins, or counseling referrals.'}
             </p>
           </div>
         </div>
@@ -70,10 +78,10 @@ export function PredictionResultDisplay({ result, modelType }: PredictionResultP
       <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
         <h3 className="font-semibold text-gray-900 mb-2 text-sm">Important Notes</h3>
         <ul className="text-sm text-gray-700 space-y-1">
-          <li>• This prediction is based on historical data and statistical patterns</li>
-          <li>• Individual circumstances vary and outcomes are not deterministic</li>
-          <li>• Use this as one input among many for student support decisions</li>
-          <li>• The model has been evaluated for fairness across gender groups</li>
+          <li>• Predictions are probabilistic and not determinations.</li>
+          <li>• Use this alongside advisor judgment and current context.</li>
+          <li>• Fairness across gender groups was evaluated and reported.</li>
+          <li>• Inputs left blank use training-set defaults for stability.</li>
         </ul>
       </div>
     </div>

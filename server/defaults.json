@@ -1,0 +1,35 @@
+{
+  "defaults": {
+    "Admission grade": 126.6,
+    "Age at enrollment": 20.0,
+    "Unemployment rate": 11.1,
+    "Inflation rate": 1.4,
+    "GDP": 0.32,
+    "Scholarship holder": 0,
+    "Tuition fees up to date": 1,
+    "Displaced": 1,
+    "Educational special needs": 0,
+    "Debtor": 0,
+    "International": 0,
+    "Gender": 0
+  },
+  "descriptions": {
+    "Admission grade": "median from training set",
+    "Age at enrollment": "median from training set",
+    "Unemployment rate": "median from training set",
+    "Inflation rate": "median from training set",
+    "GDP": "median from training set",
+    "Scholarship holder": "mode (most frequent) from training set",
+    "Tuition fees up to date": "mode (most frequent) from training set",
+    "Displaced": "mode (most frequent) from training set",
+    "Educational special needs": "mode (most frequent) from training set",
+    "Debtor": "mode (most frequent) from training set",
+    "International": "mode (most frequent) from training set",
+    "Gender": "mode (most frequent) from training set"
+  },
+  "notes": "These values are used as transparent defaults in the Advanced section of the UI; users can edit them.",
+  "target_map": {
+    "Dropout": 0,
+    "Graduate": 1
+  }
+}
