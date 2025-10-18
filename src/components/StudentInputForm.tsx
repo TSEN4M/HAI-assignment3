@@ -137,11 +137,12 @@ export function StudentInputForm({ onSubmit, loading }: StudentInputFormProps) {
         </label>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {[
-            { value: 'baseline', label: 'Baseline', desc: 'Uses Gender' },
-            { value: 'drop_gender', label: 'Drop Gender', desc: 'Ignores Gender' },
-            { value: 'reweighted', label: 'Reweighted (Recommended)', desc: 'Balances A×Y for fairness' },
-            { value: 'calibrated', label: 'Calibrated', desc: 'Isotonic on no-gender LR' },
-          ].map((opt) => (
+            { value: 'baseline', label: 'Baseline', desc: 'Uses Gender; strongest bias' },
+            { value: 'drop_gender', label: 'Drop Gender', desc: 'Removes Gender; bias reduced' },
+            { value: 'reweighted', label: 'Reweighted (Recommended)', desc: 'Best parity (near-zero SPD/EOD)' },
+            { value: 'calibrated', label: 'Calibrated', desc: 'No-gender LR + isotonic; calibrated probs' },
+          ]
+          .map((opt) => (
             <button
               key={opt.value}
               type="button"

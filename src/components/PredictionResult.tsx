@@ -1,15 +1,23 @@
-import { AlertCircle, CheckCircle, TrendingDown, TrendingUp } from 'lucide-react';
+import { AlertCircle, CheckCircle, TrendingDown, TrendingUp, HelpCircle } from 'lucide-react';
 import { PredictionResult } from '../types';
 
 interface PredictionResultProps {
   result: PredictionResult;
-  modelType: string; // display name from parent (e.g., "Reweighted Model (Recommended)")
+  modelType: string; // display name from parent
 }
 
 export function PredictionResultDisplay({ result, modelType }: PredictionResultProps) {
   const isGraduate = result.prediction === 'Graduate';
-  // confidence is the model's probability for the predicted class
-  const confidencePct = (result.confidence * 100).toFixed(1);
+
+  // Backend returns p(Graduate). If model predicts Dropout, show 1 − p(Graduate).
+  const pGrad = Number(result.confidence ?? 0);
+  const displayConfidence = isGraduate ? pGrad : (1 - pGrad);
+  const confidencePercent = (displayConfidence * 100).toFixed(1);
+
+  const confidenceHelp =
+    'Confidence = probability of the predicted class. ' +
+    'The backend returns p(Graduate); if the predicted class is Dropout we show 1 − p(Graduate). ' +
+    'Use alongside advisor judgment.';
 
   return (
     <div className="bg-white rounded-lg shadow-lg p-6 border-2 border-gray-200">
@@ -39,19 +47,22 @@ export function PredictionResultDisplay({ result, modelType }: PredictionResultP
           </div>
         </div>
 
-        {/* Single confidence bar toward the predicted class */}
+        {/* Confidence toward the predicted class */}
         <div className="mt-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-700">Model Confidence</span>
-            <span className="text-sm font-bold text-gray-900">{confidencePct}%</span>
+            <span className="text-sm font-medium text-gray-700 inline-flex items-center gap-1">
+              Model Confidence
+              <span title={confidenceHelp}>
+                <HelpCircle className="w-4 h-4 text-gray-500" aria-hidden="true" />
+                <span className="sr-only">Confidence help</span>
+              </span>
+            </span>
+            <span className="text-sm font-bold text-gray-900">{confidencePercent}%</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-3">
             <div
-              className={`h-3 rounded-full transition-all ${
-                isGraduate ? 'bg-green-600' : 'bg-amber-600'
-              }`}
-              style={{ width: `${confidencePct}%` }}
-              title={`${result.prediction}: ${confidencePct}%`}
+              className={`h-3 rounded-full transition-all ${isGraduate ? 'bg-green-600' : 'bg-amber-600'}`}
+              style={{ width: `${confidencePercent}%` }}
             />
           </div>
         </div>
