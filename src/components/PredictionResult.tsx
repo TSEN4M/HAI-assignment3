@@ -10,8 +10,8 @@ export function PredictionResultDisplay({ result, modelType }: PredictionResultP
   const isGraduate = result.prediction === 'Graduate';
 
   // Backend returns p(Graduate). If model predicts Dropout, show 1 − p(Graduate).
-  const pGrad = Number(result.confidence ?? 0);
-  const displayConfidence = isGraduate ? pGrad : (1 - pGrad);
+
+  const displayConfidence = Number(result.confidence ?? 0);
   const confidencePercent = (displayConfidence * 100).toFixed(1);
 
   const confidenceHelp =
