@@ -215,9 +215,20 @@ app.post("/functions/v1/predict-dropout", (req, res) => {
     const probGraduate = predictByModel(model_type, student_data);
 
     const prediction = probGraduate >= 0.5 ? "Graduate" : "Dropout";
+    
+    // confidence should be the probability of the predicted class:
+    // - if Graduate:  confidence = p(Graduate)
+    // - if Dropout:   confidence = 1 - p(Graduate)
+    const confidence =
+      prediction === "Graduate" ? probGraduate : (1 - probGraduate);
+
+    // (optional) clamp and round a bit so you never see -0 or 1.0000001
+    const conf = Math.min(1, Math.max(0, Number(confidence)));
+
+
     res.json({
       prediction,
-      confidence: probGraduate, // same field the UI uses
+      confidence: conf, // same field the UI uses
       model_type,
     });
   } catch (err) {
