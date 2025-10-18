@@ -9,15 +9,13 @@ interface PredictionResultProps {
 export function PredictionResultDisplay({ result, modelType }: PredictionResultProps) {
   const isGraduate = result.prediction === 'Graduate';
 
-  // Backend returns p(Graduate). If model predicts Dropout, show 1 − p(Graduate).
-
+  // Backend returns the probability of the predicted class already.
   const displayConfidence = Number(result.confidence ?? 0);
   const confidencePercent = (displayConfidence * 100).toFixed(1);
 
   const confidenceHelp =
-    'Confidence = probability of the predicted class. ' +
-    'The backend returns p(Graduate); if the predicted class is Dropout we show 1 − p(Graduate). ' +
-    'Use alongside advisor judgment.';
+    'Confidence = model-estimated probability of the predicted class. ' +
+    'Use this as decision support alongside advisor judgment and context.';
 
   return (
     <div className="bg-white rounded-lg shadow-lg p-6 border-2 border-gray-200">
