@@ -83,7 +83,13 @@ export function PredictionResultDisplay({ result, modelType }: PredictionResultP
           </div>
         </div>
       </div>
-
+      <div className="mt-3 p-3 rounded border bg-white">
+        <p className="text-sm text-gray-700">
+          <span className="font-semibold">What tends to matter (from Analysis): </span>
+          Higher admission grade and up-to-date fees generally increase graduation probability; debtor
+          status and special needs often decrease it. See the <a href="#performance" className="underline">Performance</a> tab for aggregate behavior.
+        </p>
+      </div>
       <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
         <h3 className="font-semibold text-gray-900 mb-2 text-sm">Important Notes</h3>
         <ul className="text-sm text-gray-700 space-y-1">
