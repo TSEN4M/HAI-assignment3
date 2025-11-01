@@ -54,8 +54,8 @@ export function ModelPerformance() {
     return names[type] || type;
   };
 
-  const pct = (v?: number) => (typeof v === 'number' ? `${(v * 100).toFixed(1)}%` : '—');
-  const dec = (v?: number) => (typeof v === 'number' ? v.toFixed(3) : '—');
+  const pct = (v?: number) => (typeof v === 'number' ? `${(v * 100).toFixed(1)}%` : '-');
+  const dec = (v?: number) => (typeof v === 'number' ? v.toFixed(3) : '-');
   const f1 = (p?: number, r?: number) =>
     typeof p === 'number' && typeof r === 'number' && p + r !== 0 ? (2 * p * r) / (p + r) : 0;
 

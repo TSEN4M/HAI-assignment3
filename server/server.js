@@ -286,6 +286,7 @@ app.post("/functions/v1/predict-dropout", (req, res) => {
     res.json({
       prediction,
       confidence: conf,
+      probGraduate,
       model_type,
       explanation: {
         type: "lime",

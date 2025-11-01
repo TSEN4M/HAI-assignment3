@@ -11,7 +11,8 @@ const API_BASE = import.meta.env.VITE_SUPABASE_URL;
 function App() {
   const [activeTab, setActiveTab] = useState<'predict' | 'performance' | 'explanations'>('predict');
   const [prediction, setPrediction] = useState<PredictionResult | null>(null);
-  const [selectedModel, setSelectedModel] = useState<string>(''); // keeping as label string
+  const [selectedModelLabel, setSelectedModelLabel] = useState<string>('');
+  const [selectedModelType, setSelectedModelType] = useState<ModelType | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handlePrediction = async (data: StudentData, modelType: ModelType) => {
@@ -40,7 +41,8 @@ function App() {
 
       const result: PredictionResult = await response.json();
       setPrediction(result);
-      setSelectedModel(getModelName(modelType)); // store friendly label for display
+      setSelectedModelLabel(getModelName(modelType));
+      setSelectedModelType(modelType);
     } catch (error) {
       console.error('Error making prediction:', error);
       alert('Failed to make prediction. Please try again.');
@@ -136,7 +138,7 @@ function App() {
 
             <div>
               {prediction ? (
-                <PredictionResultDisplay result={prediction} modelType={selectedModel} />
+                <PredictionResultDisplay result={prediction} modelType={selectedModelLabel} />
               ) : (
                 <div className="bg-white rounded-lg shadow-lg p-6 border-2 border-dashed border-gray-300">
                   <div className="text-center py-12 text-gray-500">
@@ -163,8 +165,8 @@ function App() {
                 <div>
                   <h3 className="font-semibold text-gray-900 mb-3">Select a Model to Explore</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {['baseline', 'drop_gender', 'reweighted', 'calibrated'].map((modelKey) => {
-                      const names: Record<string, string> = {
+                    {(['baseline', 'drop_gender', 'reweighted', 'calibrated'] as ModelType[]).map((modelKey) => {
+                      const names: Record<ModelType, string> = {
                         baseline: 'Baseline Model',
                         drop_gender: 'Gender-Blind Model',
                         reweighted: 'Reweighted Model (Recommended)',
@@ -173,9 +175,12 @@ function App() {
                       return (
                         <button
                           key={modelKey}
-                          onClick={() => setSelectedModel(names[modelKey])}
+                          onClick={() => {
+                            setSelectedModelType(modelKey);
+                            setSelectedModelLabel(names[modelKey]);
+                          }}
                           className={`p-3 rounded-lg border transition text-left ${
-                            selectedModel === names[modelKey]
+                            selectedModelType === modelKey
                               ? 'border-blue-500 bg-blue-50'
                               : 'border-gray-200 hover:border-gray-300'
                           }`}
@@ -187,9 +192,9 @@ function App() {
                   </div>
                 </div>
 
-                {selectedModel && (
+                {selectedModelType && (
                   <div className="border-t pt-6">
-                    <GlobalExplanationDisplay modelType={selectedModel.split(' ')[0].toLowerCase() as ModelType} />
+                    <GlobalExplanationDisplay modelType={selectedModelType} />
                   </div>
                 )}
               </div>

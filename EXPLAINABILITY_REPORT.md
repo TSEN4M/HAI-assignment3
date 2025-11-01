@@ -26,7 +26,7 @@ We implemented two complementary explanation approaches, directly aligned with c
 
 1. **LIME for Local Explanations**:
    - Logistic regression models are inherently interpretable (linear relationships)
-   - For each prediction, we calculate: `contribution = feature_value × coefficient`
+   - For each prediction, we calculate: `contribution = feature_value * coefficient`
    - Shows which specific features pushed the model toward graduation or dropout for that individual
    - Model-agnostic approach means it works with all four model variants
 
@@ -64,10 +64,10 @@ From the lecture materials, the following explanation questions are answered:
 - **Explanation**: "Feature coefficients from logistic regression. Larger absolute values indicate stronger influence."
 - **Transparency**: Users understand the model uses linear relationships between features and outcomes
 
-### **WHY: "Why did the model make THIS prediction?"** ✓ PRIMARY FOCUS
+### **WHY: "Why did the model make THIS prediction?"** [x] PRIMARY FOCUS
 - **How Addressed**: Local Explanation section in prediction results
 - **Feature Contributions**: Shows top 5 most impactful features for the specific student
-- **Direction Indicators**: Green (↑) for features increasing graduation likelihood, Red (↓) for decreasing
+- **Direction Indicators**: Green (+) means a feature pushes toward graduation, Red (-) means it pushes toward dropout
 - **Interpretation**: Impact values show magnitude of each feature's influence on THIS prediction
 - **Transparency**: Advisors immediately understand what changed the prediction
 
@@ -106,7 +106,7 @@ From the lecture materials, the following explanation questions are answered:
 ```javascript
 - Normalizes student input data
 - Builds feature vector in model order
-- Calculates linear contribution: feature_value × coefficient
+- Calculates linear contribution: feature_value * coefficient
 - Returns contributions sorted by impact
 ```
 
@@ -152,7 +152,7 @@ FeatureContribution {
   name: string;           // Feature name
   value: number;          // Student's value for this feature
   weight: number;         // Model coefficient
-  contribution: number;   // value × weight
+  contribution: number;   // value * weight
   impact: 'increases' | 'decreases';
 }
 
@@ -178,7 +178,7 @@ GlobalExplanation {
 ### 4.1 LIME (Local Interpretable Model-agnostic Explanations)
 - **Concept**: Approximate model behavior locally using simple, interpretable model
 - **Our Implementation**: For logistic regression, the "simple model" IS the actual model, so explanations are exact
-- **Formula**: `prediction ≈ intercept + Σ(feature_i × coefficient_i)`
+- **Formula**: `prediction ~= intercept + sum(feature_i * coefficient_i)`
 - **Advantage**: Users see the exact linear contribution of each feature to the prediction
 
 ### 4.2 Model-Agnostic Approach
@@ -191,13 +191,13 @@ GlobalExplanation {
 
 ### 4.3 Transparency vs. Explainability vs. Interpretability
 From lecture concepts:
-- **Transparency**: What features does the model use? ✓ Input form shows all 12
-- **Interpretability**: Can humans understand the model? ✓ Linear coefficients are directly interpretable
-- **Explainability**: Why specific predictions? ✓ Feature contribution analysis explains individual predictions
+- **Transparency**: What features does the model use? [x] Input form shows all 12
+- **Interpretability**: Can humans understand the model? [x] Linear coefficients are directly interpretable
+- **Explainability**: Why specific predictions? [x] Feature contribution analysis explains individual predictions
 
 ### 4.4 Global vs. Local Explanations
-- **Global**: "What is the model's overall strategy?" → Feature importance tab
-- **Local**: "Why THIS prediction for THIS student?" → Explanation in result section
+- **Global**: "What is the model's overall strategy?" -> Feature importance tab
+- **Local**: "Why THIS prediction for THIS student?" -> Explanation in result section
 - **Both Needed**: Global patterns help advisors understand the model; local explanations support individual case understanding
 
 ---
@@ -208,14 +208,14 @@ From lecture concepts:
 
 The system now guides users through understanding predictions:
 
-1. **Make Prediction** → See result + local explanation (focused view)
-2. **Model Explanations** → Understand how each model variant thinks (global pattern understanding)
-3. **Model Performance & Fairness** → Understand model limitations and equity (contextual trust)
+1. **Make Prediction** -> See result + local explanation (focused view)
+2. **Model Explanations** -> Understand how each model variant thinks (global pattern understanding)
+3. **Model Performance & Fairness** -> Understand model limitations and equity (contextual trust)
 
 ### 5.2 Visual Design for Clarity
 
-- **Color Coding**: Green for positive push, Red for negative (consistent across all explanations)
-- **Direction Arrows**: ↑ and ↓ show impact direction
+- **Color Coding**: Green = supports graduation; Red = supports dropout (consistent across all explanations)
+- **Direction Arrows**: up and down show impact direction
 - **Impact Bars**: Longer bars = more influence (proportional to contribution magnitude)
 - **Formatted Numbers**: Feature contributions shown with appropriate precision
 - **Interpretation Boxes**: Each explanation includes guidance on how to interpret it
@@ -253,8 +253,8 @@ For each prediction, advisors can now:
 - **Feature-based** (show what features mattered, not why those features are important in reality)
 
 ### 7.2 What These Explanations Are Not
-- **Causal** (correlation with dropout ≠ causes dropout)
-- **Predictive of intervention success** (knowing why a prediction was made ≠ knowing what intervention works)
+- **Causal** (correlation with dropout != causes dropout)
+- **Predictive of intervention success** (knowing why a prediction was made != knowing what intervention works)
 - **Complete** (showing top 5 features, not all features)
 
 ### 7.3 User Guidance in UI
@@ -266,16 +266,16 @@ For each prediction, advisors can now:
 
 ## 8. Implementation Checklist
 
-- ✓ Local explanations showing feature contributions for each prediction
-- ✓ Global explanations showing feature importance across all students
-- ✓ Both explanation types provided as required
-- ✓ Addresses all 8 user explainability questions from course
-- ✓ Clear UI showing "Why this prediction" (local) and "How the model thinks" (global)
-- ✓ Integrated into prediction workflow
-- ✓ Works with all 4 model variants (baseline, gender-blind, reweighted, calibrated)
-- ✓ Transparent limitations and honest about what explanations show/don't show
-- ✓ Actionable guidance for academic advisors
-- ✓ Maintains fairness context from Assignment 3
+- [x] Local explanations showing feature contributions for each prediction
+- [x] Global explanations showing feature importance across all students
+- [x] Both explanation types provided as required
+- [x] Addresses all 8 user explainability questions from course
+- [x] Clear UI showing "Why this prediction" (local) and "How the model thinks" (global)
+- [x] Integrated into prediction workflow
+- [x] Works with all 4 model variants (baseline, gender-blind, reweighted, calibrated)
+- [x] Transparent limitations and honest about what explanations show/don't show
+- [x] Actionable guidance for academic advisors
+- [x] Maintains fairness context from Assignment 3
 
 ---
 
@@ -300,7 +300,7 @@ To test the explainability system:
 
 1. **Local Explanations**: Make predictions and verify:
    - Top 5 features are displayed
-   - Contributions match feature_value × coefficient
+   - Contributions match feature_value * coefficient
    - Color coding matches prediction direction (Graduate=green push, Dropout=red push)
 
 2. **Global Explanations**: Check Model Explanations tab:

@@ -29,7 +29,7 @@ export function StudentInputForm({ onSubmit, loading }: StudentInputFormProps) {
   const [inflation, setInflation] = useState<string>('');       // %
   const [gdp, setGdp] = useState<string>('');                   // (normalized) ~ -10..10
 
-  const genderHidden = modelType === 'drop_gender';
+  const genderHidden = modelType === 'drop_gender' || modelType === 'calibrated';
 
   // ---- Bounds for fields (single source of truth) ----
   const BOUNDS = {
@@ -238,12 +238,12 @@ export function StudentInputForm({ onSubmit, loading }: StudentInputFormProps) {
         disabled={loading || !formValid}
         className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
       >
-        {loading ? 'Predicting…' : 'Predict Graduation Outcome'}
+        {loading ? 'Predicting...' : 'Predict Graduation Outcome'}
       </button>
 
       {!formValid && (
         <p className="text-xs text-red-600">
-          Please fix out-of-range values: Admission grade {BOUNDS.admission.min}–{BOUNDS.admission.max}, Age {BOUNDS.age.min}–{BOUNDS.age.max}
+          Please fix out-of-range values: Admission grade {BOUNDS.admission.min}-{BOUNDS.admission.max}, Age {BOUNDS.age.min}-{BOUNDS.age.max}
           {showAdvanced && ' (and check Advanced fields)'}.
         </p>
       )}

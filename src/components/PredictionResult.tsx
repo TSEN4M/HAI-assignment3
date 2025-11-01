@@ -99,10 +99,10 @@ export function PredictionResultDisplay({ result, modelType }: PredictionResultP
       <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
         <h3 className="font-semibold text-gray-900 mb-2 text-sm">Important Notes</h3>
         <ul className="text-sm text-gray-700 space-y-1">
-          <li>• Predictions are probabilistic and not determinations.</li>
-          <li>• Use this alongside advisor judgment and current context.</li>
-          <li>• Fairness across gender groups was evaluated and reported.</li>
-          <li>• Inputs left blank use training-set defaults for stability.</li>
+          <li>- Predictions are probabilistic and not determinations.</li>
+          <li>- Use this alongside advisor judgment and current context.</li>
+          <li>- Fairness across gender groups was evaluated and reported.</li>
+          <li>- Inputs left blank use training-set defaults for stability.</li>
         </ul>
       </div>
     </div>
