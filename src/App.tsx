@@ -3,12 +3,13 @@ import { GraduationCap, Info } from 'lucide-react';
 import { StudentInputForm } from './components/StudentInputForm';
 import { PredictionResultDisplay } from './components/PredictionResult';
 import { ModelPerformance } from './components/ModelPerformance';
+import { GlobalExplanationDisplay } from './components/GlobalExplanation';
 import { StudentData, ModelType, PredictionResult } from './types';
 
 const API_BASE = import.meta.env.VITE_SUPABASE_URL;
 
 function App() {
-  const [activeTab, setActiveTab] = useState<'predict' | 'performance'>('predict');
+  const [activeTab, setActiveTab] = useState<'predict' | 'performance' | 'explanations'>('predict');
   const [prediction, setPrediction] = useState<PredictionResult | null>(null);
   const [selectedModel, setSelectedModel] = useState<string>(''); // keeping as label string
   const [loading, setLoading] = useState(false);
@@ -92,10 +93,10 @@ function App() {
         </div>
 
         <div className="mb-6">
-          <div className="flex gap-2 border-b border-gray-200">
+          <div className="flex gap-2 border-b border-gray-200 overflow-x-auto">
             <button
               onClick={() => setActiveTab('predict')}
-              className={`px-6 py-3 font-semibold transition-colors border-b-2 ${
+              className={`px-6 py-3 font-semibold transition-colors border-b-2 whitespace-nowrap ${
                 activeTab === 'predict'
                   ? 'border-blue-600 text-blue-600'
                   : 'border-transparent text-gray-600 hover:text-gray-900'
@@ -104,8 +105,18 @@ function App() {
               Make Prediction
             </button>
             <button
+              onClick={() => setActiveTab('explanations')}
+              className={`px-6 py-3 font-semibold transition-colors border-b-2 whitespace-nowrap ${
+                activeTab === 'explanations'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Model Explanations
+            </button>
+            <button
               onClick={() => setActiveTab('performance')}
-              className={`px-6 py-3 font-semibold transition-colors border-b-2 ${
+              className={`px-6 py-3 font-semibold transition-colors border-b-2 whitespace-nowrap ${
                 activeTab === 'performance'
                   ? 'border-blue-600 text-blue-600'
                   : 'border-transparent text-gray-600 hover:text-gray-900'
@@ -137,6 +148,51 @@ function App() {
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+        ) : activeTab === 'explanations' ? (
+          <div className="max-w-4xl">
+            <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Model Explainability</h2>
+              <p className="text-gray-700 mb-4">
+                Understanding how models make predictions is critical for informed decision-making. This page provides both
+                <strong> global explanations</strong> (model behavior overall) and <strong>local explanations</strong> (why a specific prediction was made).
+              </p>
+
+              <div className="space-y-6">
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-3">Select a Model to Explore</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {['baseline', 'drop_gender', 'reweighted', 'calibrated'].map((modelKey) => {
+                      const names: Record<string, string> = {
+                        baseline: 'Baseline Model',
+                        drop_gender: 'Gender-Blind Model',
+                        reweighted: 'Reweighted Model (Recommended)',
+                        calibrated: 'Calibrated Model',
+                      };
+                      return (
+                        <button
+                          key={modelKey}
+                          onClick={() => setSelectedModel(names[modelKey])}
+                          className={`p-3 rounded-lg border transition text-left ${
+                            selectedModel === names[modelKey]
+                              ? 'border-blue-500 bg-blue-50'
+                              : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                        >
+                          <div className="font-medium text-gray-900">{names[modelKey]}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {selectedModel && (
+                  <div className="border-t pt-6">
+                    <GlobalExplanationDisplay modelType={selectedModel.split(' ')[0].toLowerCase() as ModelType} />
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         ) : (

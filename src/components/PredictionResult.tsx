@@ -1,15 +1,14 @@
 import { AlertCircle, CheckCircle, TrendingDown, TrendingUp, HelpCircle } from 'lucide-react';
 import { PredictionResult } from '../types';
+import { LocalExplanationDisplay } from './LocalExplanation';
 
 interface PredictionResultProps {
   result: PredictionResult;
-  modelType: string; // display name from parent
+  modelType: string;
 }
 
 export function PredictionResultDisplay({ result, modelType }: PredictionResultProps) {
   const isGraduate = result.prediction === 'Graduate';
-
-  // Backend returns the probability of the predicted class already.
   const displayConfidence = Number(result.confidence ?? 0);
   const confidencePercent = (displayConfidence * 100).toFixed(1);
 
@@ -18,8 +17,8 @@ export function PredictionResultDisplay({ result, modelType }: PredictionResultP
     'Use this as decision support alongside advisor judgment and context.';
 
   return (
-    <div className="bg-white rounded-lg shadow-lg p-6 border-2 border-gray-200">
-      <div className="flex items-center justify-between mb-4">
+    <div className="bg-white rounded-lg shadow-lg p-6 border-2 border-gray-200 space-y-4">
+      <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold text-gray-900">Prediction Result</h2>
         <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-700 border border-gray-200">
           {modelType}
@@ -27,7 +26,7 @@ export function PredictionResultDisplay({ result, modelType }: PredictionResultP
       </div>
 
       <div
-        className={`rounded-lg p-6 mb-4 ${
+        className={`rounded-lg p-6 ${
           isGraduate ? 'bg-green-50 border-2 border-green-200' : 'bg-amber-50 border-2 border-amber-200'
         }`}
       >
@@ -45,7 +44,6 @@ export function PredictionResultDisplay({ result, modelType }: PredictionResultP
           </div>
         </div>
 
-        {/* Confidence toward the predicted class */}
         <div className="mt-4">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium text-gray-700 inline-flex items-center gap-1">
@@ -66,6 +64,12 @@ export function PredictionResultDisplay({ result, modelType }: PredictionResultP
         </div>
       </div>
 
+      {result.explanation && (
+        <div className="border-t pt-4">
+          <LocalExplanationDisplay explanation={result.explanation} prediction={result.prediction} />
+        </div>
+      )}
+
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <div className="flex items-start gap-2">
           {isGraduate ? (
@@ -83,14 +87,16 @@ export function PredictionResultDisplay({ result, modelType }: PredictionResultP
           </div>
         </div>
       </div>
-      <div className="mt-3 p-3 rounded border bg-white">
+
+      <div className="mt-2 p-3 rounded border bg-white">
         <p className="text-sm text-gray-700">
-          <span className="font-semibold">What tends to matter (from Analysis): </span>
-          Higher admission grade and up-to-date fees generally increase graduation probability; debtor
-          status and special needs often decrease it. See the Performance tab for aggregate behavior.
+          <span className="font-semibold">Model Behavior: </span>
+          The "Why This Prediction?" section above shows the specific factors that influenced this particular prediction.
+          See the Model Performance tab for overall model patterns across all students.
         </p>
       </div>
-      <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+
+      <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
         <h3 className="font-semibold text-gray-900 mb-2 text-sm">Important Notes</h3>
         <ul className="text-sm text-gray-700 space-y-1">
           <li>• Predictions are probabilistic and not determinations.</li>

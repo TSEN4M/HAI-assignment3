@@ -208,34 +208,132 @@ app.get("/rest/v1/model_metrics", (_req, res) => res.json(metrics));
 // Expose defaults so UI can prefill
 app.get("/defaults", (_req, res) => res.json(defaults));
 
-// Main prediction endpoint (keeps your existing frontend request shape)
+// Get model weights and schema
+function getModelParams(modelType) {
+  if (modelType === "baseline") {
+    return {
+      features: modelBaseline.schema.features,
+      coef: modelBaseline.logreg.coef,
+      intercept: modelBaseline.logreg.intercept,
+    };
+  }
+  if (modelType === "drop_gender") {
+    return {
+      features: modelDropGender.schema.features,
+      coef: modelDropGender.logreg.coef,
+      intercept: modelDropGender.logreg.intercept,
+    };
+  }
+  if (modelType === "reweighted") {
+    return {
+      features: modelReweighted.schema.features,
+      coef: modelReweighted.logreg.coef,
+      intercept: modelReweighted.logreg.intercept,
+    };
+  }
+  if (modelType === "calibrated") {
+    return {
+      features: modelCalibrated.base.features,
+      coef: modelCalibrated.base.coef,
+      intercept: modelCalibrated.base.intercept,
+      isCalibrated: true,
+      isotonic: modelCalibrated.isotonic,
+    };
+  }
+}
+
+// Calculate linear terms (feature contributions) for LIME-like local explanations
+function calculateFeatureContributions(modelType, studentRaw) {
+  const S = normalizeStudent(studentRaw);
+  const params = getModelParams(modelType);
+
+  if (!params) throw new Error(`Unknown model_type "${modelType}"`);
+
+  const x = buildX(params.features, S);
+  const z = dot(params.coef, x) + params.intercept;
+
+  const contributions = params.features.map((fname, i) => ({
+    feature: fname,
+    value: x[i],
+    weight: params.coef[i],
+    contribution: x[i] * params.coef[i],
+  }));
+
+  return { contributions, z, intercept: params.intercept };
+}
+
+// Main prediction endpoint with explanations
 app.post("/functions/v1/predict-dropout", (req, res) => {
   try {
     const { model_type = "reweighted", student_data = {} } = req.body || {};
     const probGraduate = predictByModel(model_type, student_data);
 
     const prediction = probGraduate >= 0.5 ? "Graduate" : "Dropout";
-    
-    // confidence should be the probability of the predicted class:
-    // - if Graduate:  confidence = p(Graduate)
-    // - if Dropout:   confidence = 1 - p(Graduate)
+
     const confidence =
       prediction === "Graduate" ? probGraduate : (1 - probGraduate);
 
-    // (optional) clamp and round a bit so you never see -0 or 1.0000001
     const conf = Math.min(1, Math.max(0, Number(confidence)));
 
+    // Calculate local explanations
+    const { contributions, z, intercept } = calculateFeatureContributions(model_type, student_data);
+
+    // Sort by absolute contribution to show most impactful features
+    const topContributions = contributions
+      .sort((a, b) => Math.abs(b.contribution) - Math.abs(a.contribution))
+      .slice(0, 5);
 
     res.json({
       prediction,
-      confidence: conf, // same field the UI uses
+      confidence: conf,
       model_type,
+      explanation: {
+        type: "lime",
+        base_value: intercept,
+        output_value: z,
+        features: topContributions.map(c => ({
+          name: c.feature,
+          value: c.value,
+          weight: c.weight,
+          contribution: c.contribution,
+          impact: c.contribution > 0 ? "increases" : "decreases",
+        })),
+      },
     });
   } catch (err) {
     console.error(err);
     res
       .status(400)
       .json({ error: err?.message || "Prediction failed on server." });
+  }
+});
+
+// Global explanations endpoint - feature importance from model coefficients
+app.get("/functions/v1/global-explanations/:model_type", (req, res) => {
+  try {
+    const { model_type } = req.params;
+    const params = getModelParams(model_type);
+
+    if (!params) {
+      return res.status(400).json({ error: `Unknown model_type "${model_type}"` });
+    }
+
+    const featureImportance = params.features.map((fname, i) => ({
+      feature: fname,
+      weight: params.coef[i],
+      importance: Math.abs(params.coef[i]),
+    }))
+    .sort((a, b) => b.importance - a.importance);
+
+    res.json({
+      model_type,
+      explanation_type: "global_feature_importance",
+      description: "Feature coefficients from logistic regression. Larger absolute values indicate stronger influence.",
+      features: featureImportance,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(400).json({ error: err?.message || "Failed to get explanations." });
   }
 });
 

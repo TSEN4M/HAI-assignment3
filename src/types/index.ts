@@ -34,11 +34,38 @@ export interface ModelMetrics {
   male_recall: number;
 }
 
+export interface FeatureContribution {
+  name: string;
+  value: number;
+  weight: number;
+  contribution: number;
+  impact: 'increases' | 'decreases';
+}
+
+export interface LocalExplanation {
+  type: string;
+  base_value: number;
+  output_value: number;
+  features: FeatureContribution[];
+}
+
 export interface PredictionResult {
-  prediction: 'Graduate' | 'Dropout'; // <— narrowed
+  prediction: 'Graduate' | 'Dropout';
   confidence: number;
-  probGraduate: number;               // <— make required if your backend always returns it
+  probGraduate?: number;
   model_type?: ModelType;
+  explanation?: LocalExplanation;
+}
+
+export interface GlobalExplanation {
+  model_type: ModelType;
+  explanation_type: string;
+  description: string;
+  features: Array<{
+    feature: string;
+    weight: number;
+    importance: number;
+  }>;
 }
 
 // (Optional) If you want to type /defaults payloads:
