@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { GraduationCap, Info } from 'lucide-react';
 import { StudentInputForm } from './components/StudentInputForm';
 import { PredictionResultDisplay } from './components/PredictionResult';
@@ -11,6 +11,7 @@ const API_BASE = import.meta.env.VITE_SUPABASE_URL;
 function App() {
   const [activeTab, setActiveTab] = useState<'predict' | 'performance' | 'explanations'>('predict');
   const [prediction, setPrediction] = useState<PredictionResult | null>(null);
+  const [lastInput, setLastInput] = useState<StudentData | null>(null);
   const [selectedModelLabel, setSelectedModelLabel] = useState<string>('');
   const [selectedModelType, setSelectedModelType] = useState<ModelType | null>(null);
   const [loading, setLoading] = useState(false);
@@ -18,6 +19,7 @@ function App() {
   const handlePrediction = async (data: StudentData, modelType: ModelType) => {
     setLoading(true);
     setPrediction(null);
+    setLastInput(data);
 
     try {
       const apiUrl = `${API_BASE}/functions/v1/predict-dropout`;
@@ -25,7 +27,6 @@ function App() {
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
-          // Authorization header not needed for local Node backend; safe to omit
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -138,7 +139,12 @@ function App() {
 
             <div>
               {prediction ? (
-                <PredictionResultDisplay result={prediction} modelType={selectedModelLabel} />
+                <PredictionResultDisplay
+                  result={prediction}
+                  modelType={selectedModelLabel}
+                  modelTypeKey={selectedModelType || 'reweighted'}
+                  studentInput={lastInput || undefined}
+                />
               ) : (
                 <div className="bg-white rounded-lg shadow-lg p-6 border-2 border-dashed border-gray-300">
                   <div className="text-center py-12 text-gray-500">
@@ -209,15 +215,15 @@ function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="text-sm text-gray-600">
             <p className="font-semibold mb-2">Model Limitations & Scope</p>
-            <ul className="space-y-1 ml-4">
-              <li>• Trained on Portuguese higher education data - may not generalize to other contexts</li>
-              <li>• Predictions are probabilistic and should not be the sole basis for decisions</li>
-              <li>• Model performance varies across demographic groups - see fairness metrics</li>
-              <li>• Best used as an early warning system to trigger support interventions</li>
-              <li>• Does not account for external factors like personal circumstances or life events</li>
+            <ul className="space-y-1 ml-4 list-disc">
+              <li>Trained on Portuguese higher education data — may not generalize to other contexts.</li>
+              <li>Predictions are probabilistic and should not be the sole basis for decisions.</li>
+              <li>Model performance varies across demographic groups — see fairness metrics.</li>
+              <li>Best used as an early warning system to trigger support interventions.</li>
+              <li>Does not account for external factors like personal circumstances or life events.</li>
             </ul>
             <p className="mt-4 text-xs text-gray-500">
-              CS698Y Human-AI Interaction | Assignment 3 | Tsewang Namgail & Sevak Shekokar
+              CS698Y Human-AI Interaction | Assignment 3 | Tsewang Namgail &amp; Sevak Shekokar
             </p>
           </div>
         </div>
@@ -227,4 +233,3 @@ function App() {
 }
 
 export default App;
-

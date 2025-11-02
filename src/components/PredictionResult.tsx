@@ -1,20 +1,26 @@
 import { AlertCircle, CheckCircle, TrendingDown, TrendingUp, HelpCircle } from 'lucide-react';
-import { PredictionResult } from '../types';
+import { PredictionResult, StudentData, ModelType } from '../types';
 import { LocalExplanationDisplay } from './LocalExplanation';
 
 interface PredictionResultProps {
   result: PredictionResult;
   modelType: string;
+  modelTypeKey?: ModelType;
+  studentInput?: StudentData;
 }
 
-export function PredictionResultDisplay({ result, modelType }: PredictionResultProps) {
+export function PredictionResultDisplay({
+  result,
+  modelType,
+  modelTypeKey,
+  studentInput,
+}: PredictionResultProps) {
   const isGraduate = result.prediction === 'Graduate';
   const displayConfidence = Number(result.confidence ?? 0);
   const confidencePercent = (displayConfidence * 100).toFixed(1);
 
   const confidenceHelp =
-    'Confidence = model-estimated probability of the predicted class. ' +
-    'Use this as decision support alongside advisor judgment and context.';
+    'Confidence = model-estimated probability of the predicted class. Use this as decision support alongside advisor judgment and context.';
 
   return (
     <div className="bg-white rounded-lg shadow-lg p-6 border-2 border-gray-200 space-y-4">
@@ -61,12 +67,20 @@ export function PredictionResultDisplay({ result, modelType }: PredictionResultP
               style={{ width: `${confidencePercent}%` }}
             />
           </div>
+          <div className="mt-1 text-xs text-gray-600">
+            In 100 similar students, about {Math.round(displayConfidence * 100)} had this outcome.
+          </div>
         </div>
       </div>
 
       {result.explanation && (
         <div className="border-t pt-4">
-          <LocalExplanationDisplay explanation={result.explanation} prediction={result.prediction} />
+          <LocalExplanationDisplay
+            explanation={result.explanation}
+            prediction={result.prediction}
+            modelType={modelTypeKey || 'reweighted'}
+            studentInput={studentInput}
+          />
         </div>
       )}
 
@@ -91,18 +105,18 @@ export function PredictionResultDisplay({ result, modelType }: PredictionResultP
       <div className="mt-2 p-3 rounded border bg-white">
         <p className="text-sm text-gray-700">
           <span className="font-semibold">Model Behavior: </span>
-          The "Why This Prediction?" section above shows the specific factors that influenced this particular prediction.
-          See the Model Performance tab for overall model patterns across all students.
+          The “Why This Prediction?” section above shows the specific factors that influenced this
+          particular prediction. See the Model Performance tab for overall model patterns across all students.
         </p>
       </div>
 
       <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
         <h3 className="font-semibold text-gray-900 mb-2 text-sm">Important Notes</h3>
-        <ul className="text-sm text-gray-700 space-y-1">
-          <li>- Predictions are probabilistic and not determinations.</li>
-          <li>- Use this alongside advisor judgment and current context.</li>
-          <li>- Fairness across gender groups was evaluated and reported.</li>
-          <li>- Inputs left blank use training-set defaults for stability.</li>
+        <ul className="text-sm text-gray-700 space-y-1 list-disc ml-4">
+          <li>Predictions are probabilistic and not determinations.</li>
+          <li>Use this alongside advisor judgment and current context.</li>
+          <li>Fairness across gender groups was evaluated and reported.</li>
+          <li>Inputs left blank use training-set defaults for stability.</li>
         </ul>
       </div>
     </div>
