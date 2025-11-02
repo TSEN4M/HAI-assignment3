@@ -10,7 +10,21 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-app.use(cors());
+
+const allowedOrigins =
+  process.env.NODE_ENV === "production" && process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(",").map((origin) => origin.trim()).filter(Boolean)
+    : null;
+
+if (allowedOrigins && allowedOrigins.length > 0) {
+  app.use(
+    cors({
+      origin: allowedOrigins,
+    })
+  );
+} else {
+  app.use(cors());
+}
 app.use(express.json());
 
 // ---------- Load auxiliary JSON ----------
@@ -142,9 +156,14 @@ function predictLR({ coef, intercept }, x) {
 
 // Top-level predict by model_type
 function predictByModel(modelType, studentRaw) {
+  const canonical = normalizeModelType(modelType);
+  if (!canonical) {
+    throw new Error(`Unknown model_type "${modelType}"`);
+  }
+
   const S = normalizeStudent(studentRaw);
 
-  if (modelType === "baseline") {
+  if (canonical === "baseline") {
     const features = modelBaseline.schema.features;
     const x = buildX(features, S);
     const { coef, intercept } = modelBaseline.logreg;
@@ -156,7 +175,7 @@ function predictByModel(modelType, studentRaw) {
     return predictLR({ coef, intercept }, x);
   }
 
-  if (modelType === "drop_gender") {
+  if (canonical === "drop_gender") {
     const features = modelDropGender.schema.features; // excludes Gender
     const x = buildX(features, S);
     const { coef, intercept } = modelDropGender.logreg;
@@ -168,7 +187,7 @@ function predictByModel(modelType, studentRaw) {
     return predictLR({ coef, intercept }, x);
   }
 
-  if (modelType === "reweighted") {
+  if (canonical === "reweighted") {
     const features = modelReweighted.schema.features; // includes Gender
     const x = buildX(features, S);
     const { coef, intercept } = modelReweighted.logreg;
@@ -180,7 +199,7 @@ function predictByModel(modelType, studentRaw) {
     return predictLR({ coef, intercept }, x);
   }
 
-  if (modelType === "calibrated") {
+  if (canonical === "calibrated") {
     // Calibrated = LR(no-gender) -> isotonic(x,y)
     const base = modelCalibrated.base; // {features, coef, intercept}
     const x = buildX(base.features, S);
@@ -208,30 +227,50 @@ app.get("/rest/v1/model_metrics", (_req, res) => res.json(metrics));
 // Expose defaults so UI can prefill
 app.get("/defaults", (_req, res) => res.json(defaults));
 
+// Model type helpers
+const MODEL_TYPE_MAP = {
+  baseline: "baseline",
+  baseline_model: "baseline",
+  drop_gender: "drop_gender",
+  "drop-gender": "drop_gender",
+  gender_blind: "drop_gender",
+  "gender-blind": "drop_gender",
+  reweighted: "reweighted",
+  calibrated: "calibrated",
+};
+
+function normalizeModelType(modelType) {
+  if (!modelType) return undefined;
+  const key = String(modelType).toLowerCase().replace(/\s+/g, "_");
+  return MODEL_TYPE_MAP[key];
+}
+
 // Get model weights and schema
 function getModelParams(modelType) {
-  if (modelType === "baseline") {
+  const canonical = normalizeModelType(modelType);
+
+  if (canonical === "baseline") {
     return {
       features: modelBaseline.schema.features,
       coef: modelBaseline.logreg.coef,
       intercept: modelBaseline.logreg.intercept,
     };
   }
-  if (modelType === "drop_gender") {
+  if (canonical === "drop_gender") {
     return {
       features: modelDropGender.schema.features,
       coef: modelDropGender.logreg.coef,
       intercept: modelDropGender.logreg.intercept,
     };
   }
-  if (modelType === "reweighted") {
+  if (canonical === "reweighted") {
     return {
       features: modelReweighted.schema.features,
       coef: modelReweighted.logreg.coef,
       intercept: modelReweighted.logreg.intercept,
     };
   }
-  if (modelType === "calibrated") {
+  if (canonical === "calibrated") {
     return {
       features: modelCalibrated.base.features,
       coef: modelCalibrated.base.coef,
@@ -240,6 +279,8 @@ function getModelParams(modelType) {
       isotonic: modelCalibrated.isotonic,
     };
   }
+
+  return undefined;
 }
 
 // Calculate linear terms (feature contributions) for LIME-like local explanations
@@ -266,7 +307,12 @@ function calculateFeatureContributions(modelType, studentRaw) {
 app.post("/functions/v1/predict-dropout", (req, res) => {
   try {
     const { model_type = "reweighted", student_data = {} } = req.body || {};
-    const probGraduate = predictByModel(model_type, student_data);
+    const canonicalType = normalizeModelType(model_type);
+    if (!canonicalType) {
+      throw new Error(`Unknown model_type "${model_type}"`);
+    }
+
+    const probGraduate = predictByModel(canonicalType, student_data);
 
     const prediction = probGraduate >= 0.5 ? "Graduate" : "Dropout";
 
@@ -276,7 +322,10 @@ app.post("/functions/v1/predict-dropout", (req, res) => {
     const conf = Math.min(1, Math.max(0, Number(confidence)));
 
     // Calculate local explanations
-    const { contributions, z, intercept } = calculateFeatureContributions(model_type, student_data);
+    const { contributions, z, intercept } = calculateFeatureContributions(
+      canonicalType,
+      student_data
+    );
 
     // Sort by absolute contribution to show most impactful features
     const topContributions = contributions
@@ -287,7 +336,7 @@ app.post("/functions/v1/predict-dropout", (req, res) => {
       prediction,
       confidence: conf,
       probGraduate,
-      model_type,
+      model_type: canonicalType,
       explanation: {
         type: "lime",
         base_value: intercept,
@@ -310,31 +359,110 @@ app.post("/functions/v1/predict-dropout", (req, res) => {
 });
 
 // Global explanations endpoint - feature importance from model coefficients
-app.get("/functions/v1/global-explanations/:model_type", (req, res) => {
-  try {
-    const { model_type } = req.params;
-    const params = getModelParams(model_type);
+function buildGlobalExplanation(modelType) {
+  const params = getModelParams(modelType);
+  if (!params) {
+    throw new Error(`Unknown model_type "${modelType}"`);
+  }
 
-    if (!params) {
-      return res.status(400).json({ error: `Unknown model_type "${model_type}"` });
-    }
-
-    const featureImportance = params.features.map((fname, i) => ({
+  const featureImportance = params.features
+    .map((fname, i) => ({
       feature: fname,
       weight: params.coef[i],
       importance: Math.abs(params.coef[i]),
     }))
     .sort((a, b) => b.importance - a.importance);
 
-    res.json({
-      model_type,
-      explanation_type: "global_feature_importance",
-      description: "Feature coefficients from logistic regression. Larger absolute values indicate stronger influence.",
-      features: featureImportance,
-    });
+  return {
+    model_type: normalizeModelType(modelType),
+    explanation_type: "global_feature_importance",
+    description:
+      "Feature coefficients from logistic regression. Larger absolute values indicate stronger influence.",
+    features: featureImportance,
+  };
+}
+
+app.get("/functions/v1/global-explanations/:model_type", (req, res) => {
+  try {
+    const { model_type } = req.params;
+    const explanation = buildGlobalExplanation(model_type);
+    res.json(explanation);
   } catch (err) {
     console.error(err);
     res.status(400).json({ error: err?.message || "Failed to get explanations." });
+  }
+});
+
+app.get("/explanations/global", (req, res) => {
+  try {
+    const { model_type } = req.query;
+    const explanation = buildGlobalExplanation(model_type);
+    res.json(explanation.features);
+  } catch (err) {
+    console.error(err);
+    res.status(400).json({ error: err?.message || "Failed to get explanations." });
+  }
+});
+
+app.post("/explanations/local", (req, res) => {
+  try {
+    const { model_type, input = {} } = req.body || {};
+    const canonicalType = normalizeModelType(model_type);
+    if (!canonicalType) {
+      return res.status(400).json({ error: `Unknown model_type "${model_type}"` });
+    }
+
+    const { contributions, z, intercept } = calculateFeatureContributions(
+      canonicalType,
+      input
+    );
+
+    const sorted = [...contributions].sort(
+      (a, b) => Math.abs(b.contribution) - Math.abs(a.contribution)
+    );
+
+    const topPositive = sorted.find((c) => c.contribution > 0);
+    const topNegative = sorted.find((c) => c.contribution < 0);
+
+    const formatFeature = (name) =>
+      name
+        .replace(/_/g, " ")
+        .split(" ")
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" ");
+
+    let summary = "Local explanation generated from logistic regression coefficients.";
+    if (topPositive || topNegative) {
+      const pieces = [];
+      if (topPositive) {
+        pieces.push(
+          `${formatFeature(topPositive.feature)} pushes toward graduation (+${topPositive.contribution.toFixed(
+            2
+          )}).`
+        );
+      }
+      if (topNegative) {
+        pieces.push(
+          `${formatFeature(topNegative.feature)} pushes toward dropout (${topNegative.contribution.toFixed(2)}).`
+        );
+      }
+      summary = pieces.join(" ");
+    }
+
+    res.json({
+      model_type: canonicalType,
+      base_value: intercept,
+      output_value: z,
+      contribs: sorted.map((c) => ({
+        feature: c.feature,
+        value: c.value,
+        effect: c.contribution,
+      })),
+      summary,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(400).json({ error: err?.message || "Failed to compute local explanation." });
   }
 });
 
