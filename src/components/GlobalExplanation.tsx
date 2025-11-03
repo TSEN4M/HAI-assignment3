@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { BarChart3, Zap } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Zap } from 'lucide-react';
 import { ModelType, GlobalExplanation } from '../types';
 
 const API_BASE = import.meta.env.VITE_SUPABASE_URL;
@@ -12,11 +12,21 @@ export function GlobalExplanationDisplay({ modelType }: GlobalExplanationProps) 
   const [explanation, setExplanation] = useState<GlobalExplanation | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const cacheRef = useRef<Partial<Record<ModelType, GlobalExplanation>>>({});
 
   useEffect(() => {
     let alive = true;
 
     (async () => {
+      setLoading(true);
+      const cached = cacheRef.current[modelType];
+      if (cached) {
+        setExplanation(cached);
+        setError(null);
+        setLoading(false);
+        return;
+      }
+
       try {
         const res = await fetch(`${API_BASE}/functions/v1/global-explanations/${modelType}`);
         if (!res.ok) throw new Error(await res.text());
@@ -24,6 +34,7 @@ export function GlobalExplanationDisplay({ modelType }: GlobalExplanationProps) 
 
         if (!alive) return;
         setExplanation(data);
+        cacheRef.current[modelType] = data;
       } catch (e: any) {
         console.error('Error fetching global explanations:', e);
         if (!alive) return;
@@ -44,9 +55,10 @@ export function GlobalExplanationDisplay({ modelType }: GlobalExplanationProps) 
       .join(' ');
   };
 
-  const formatNumber = (num: number): string => {
-    return Math.abs(num) < 0.001 ? num.toFixed(4) : num.toFixed(3);
-  };
+  const formatNumber = useMemo(
+    () => (num: number): string => (Math.abs(num) < 0.001 ? num.toFixed(4) : num.toFixed(3)),
+    [],
+  );
 
   if (loading) {
     return <div className="text-center py-6 text-gray-600">Loading model explanation...</div>;

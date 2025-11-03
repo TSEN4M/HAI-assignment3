@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { TrendingUp } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { TrendingUp, ShieldCheck, AlertTriangle, LifeBuoy } from 'lucide-react';
 import { LocalExplanation, FeatureContribution, StudentData, ModelType } from '../types';
 
 const API_BASE = import.meta.env.VITE_SUPABASE_URL;
@@ -21,22 +21,26 @@ const YES_NO_FEATURES = new Set([
 ]);
 const PERCENT_FEATURES = new Set(['Unemployment rate', 'Inflation rate']);
 
+const FEATURE_KEY_MAP = {
+  'Admission grade': 'Admission_grade',
+  'Age at enrollment': 'Age_at_enrollment',
+  'Scholarship holder': 'Scholarship_holder',
+  'Tuition fees up to date': 'Tuition_up_to_date',
+  'Displaced': 'Displaced',
+  'Educational special needs': 'Educational_special_needs',
+  'Debtor': 'Debtor',
+  'International': 'International',
+  'Unemployment rate': 'Unemployment_rate',
+  'Inflation rate': 'Inflation_rate',
+  'GDP': 'GDP',
+  'Gender': 'Gender',
+} as const satisfies Record<string, keyof StudentData>;
+
 const featureKeyFromName = (name: string): keyof StudentData | null => {
-  const map: Record<string, keyof StudentData> = {
-    'Admission grade': 'Admission_grade',
-    'Age at enrollment': 'Age_at_enrollment',
-    'Scholarship holder': 'Scholarship_holder',
-    'Tuition fees up to date': 'Tuition_up_to_date',
-    'Displaced': 'Displaced',
-    'Educational special needs': 'Educational_special_needs',
-    'Debtor': 'Debtor',
-    'International': 'International',
-    'Unemployment rate': 'Unemployment_rate',
-    'Inflation rate': 'Inflation_rate',
-    'GDP': 'GDP',
-    'Gender': 'Gender',
-  };
-  return (map as any)[name] || null;
+  if (name in FEATURE_KEY_MAP) {
+    return FEATURE_KEY_MAP[name as keyof typeof FEATURE_KEY_MAP];
+  }
+  return null;
 };
 
 const to01 = (value: any): number => {
@@ -132,6 +136,52 @@ export function LocalExplanationDisplay({
   missingSupports.sort((a, b) => Math.abs(b.weight) - Math.abs(a.weight));
   const topMissing = missingSupports.slice(0, 3);
 
+  const summary = useMemo(() => {
+    const topProtective = protective[0];
+    const topRisk = risks[0];
+
+    if (topProtective && topRisk) {
+      return `${formatFeatureName(topProtective.name)} is the strongest positive factor, while ${formatFeatureName(topRisk.name)} is the biggest concern to address.`;
+    }
+
+    if (topProtective) {
+      return `${formatFeatureName(topProtective.name)} is the strongest positive factor influencing this prediction.`;
+    }
+
+    if (topRisk) {
+      return `${formatFeatureName(topRisk.name)} is the main reason this prediction leans toward dropout.`;
+    }
+
+    return '';
+  }, [protective, risks]);
+
+  const actionSuggestions = useMemo(() => {
+    const suggestions: string[] = [];
+    const topProtective = protective[0];
+    const topRisk = risks[0];
+    const topGap = topMissing[0];
+
+    if (topRisk) {
+      suggestions.push(
+        `Check in on ${formatFeatureName(topRisk.name)}—that factor is pulling the prediction toward dropout.`,
+      );
+    }
+
+    if (topGap) {
+      suggestions.push(
+        `Explore ways to provide ${formatFeatureName(topGap.name)} support; adding it would boost graduation odds.`,
+      );
+    }
+
+    if (topProtective) {
+      suggestions.push(
+        `Keep reinforcing ${formatFeatureName(topProtective.name)} so it continues to support graduation.`,
+      );
+    }
+
+    return suggestions;
+  }, [protective, risks, topMissing]);
+
   return (
     <div className="space-y-4">
       <div>
@@ -140,18 +190,40 @@ export function LocalExplanationDisplay({
           <h3 className="font-semibold text-gray-900">Why This Prediction?</h3>
         </div>
         <p className="text-sm text-gray-600">
-          Red items increase dropout risk. Green items support graduation. Gray items are important
-          supports currently missing for this {predictedClass} prediction.
+          Items with the <ShieldCheck className="inline h-3 w-3 text-green-600 align-text-top" aria-hidden="true" /> icon
+          support graduation. <AlertTriangle className="inline h-3 w-3 text-red-600 align-text-top" aria-hidden="true" /> warns
+          about dropout risk. <LifeBuoy className="inline h-3 w-3 text-amber-600 align-text-top" aria-hidden="true" /> highlights
+          important supports currently missing for this {predictedClass} prediction.
         </p>
         <p className="text-xs text-gray-600 mt-2">
-          Baseline (intercept): {formatNumber(explanation.base_value)} toward{' '}
-          {explanation.base_value >= 0 ? 'graduation' : 'dropout'}.
+          Starting point (baseline): {formatNumber(explanation.base_value)} leaning toward{' '}
+          {explanation.base_value >= 0 ? 'graduation' : 'dropout'} before looking at this student's details.
         </p>
       </div>
 
+      {summary && (
+        <div className="rounded-lg border border-blue-100 bg-blue-50 p-3 text-sm text-blue-900">
+          <span className="font-semibold">Story in one sentence: </span>
+          {summary}
+        </div>
+      )}
+
+      {actionSuggestions.length > 0 && (
+        <div className="rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-900">
+          <span className="font-semibold">Advisor to-do ideas:</span>
+          <ul className="mt-2 list-disc space-y-1 pl-5">
+            {actionSuggestions.map((item, idx) => (
+              <li key={`action-${idx}`}>{item}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div>
-          <h4 className="text-sm font-semibold text-green-700 mb-2">Protective Factors</h4>
+          <h4 className="text-sm font-semibold text-green-700 mb-2 flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4" /> Protective factors
+          </h4>
           <div className="space-y-2">
             {protective.length === 0 && (
               <div className="text-xs text-gray-500">No strong protective factors detected.</div>
@@ -163,12 +235,16 @@ export function LocalExplanationDisplay({
                   key={`protective-${feature.name}`}
                   className="flex items-center gap-3 p-3 bg-white rounded-lg border border-green-100"
                 >
+                  <ShieldCheck className="w-5 h-5 text-green-600 flex-shrink-0" aria-hidden="true" />
                   <div className="flex-1 min-w-0">
                     <div className="font-medium text-sm text-gray-900 truncate">
                       {formatFeatureName(feature.name)}
                     </div>
-                    <div className="text-xs text-gray-600">
-                      Value: {formatValue(feature)} — adds {formatNumber(absContribution)} support
+                    <div className="text-xs text-gray-600 flex flex-col sm:flex-row sm:items-center sm:gap-1">
+                      <span>Value: {formatValue(feature)}</span>
+                      <span className="text-green-700">
+                        · pushes prediction toward graduation by {formatNumber(absContribution)}
+                      </span>
                     </div>
                   </div>
                   <div className="flex-shrink-0 w-16 bg-gray-200 rounded-full h-2" aria-hidden="true">
@@ -186,7 +262,9 @@ export function LocalExplanationDisplay({
         </div>
 
         <div>
-          <h4 className="text-sm font-semibold text-red-700 mb-2">Risk Drivers</h4>
+          <h4 className="text-sm font-semibold text-red-700 mb-2 flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4" /> Risk drivers
+          </h4>
           <div className="space-y-2">
             {risks.length === 0 && (
               <div className="text-xs text-gray-500">No strong risk drivers detected.</div>
@@ -198,12 +276,16 @@ export function LocalExplanationDisplay({
                   key={`risk-${feature.name}`}
                   className="flex items-center gap-3 p-3 bg-white rounded-lg border border-red-100"
                 >
+                  <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0" aria-hidden="true" />
                   <div className="flex-1 min-w-0">
                     <div className="font-medium text-sm text-gray-900 truncate">
                       {formatFeatureName(feature.name)}
                     </div>
-                    <div className="text-xs text-gray-600">
-                      Value: {formatValue(feature)} — adds {formatNumber(absContribution)} risk
+                    <div className="text-xs text-gray-600 flex flex-col sm:flex-row sm:items-center sm:gap-1">
+                      <span>Value: {formatValue(feature)}</span>
+                      <span className="text-red-700">
+                        · pulls prediction toward dropout by {formatNumber(absContribution)}
+                      </span>
                     </div>
                   </div>
                   <div className="flex-shrink-0 w-16 bg-gray-200 rounded-full h-2" aria-hidden="true">
@@ -222,7 +304,9 @@ export function LocalExplanationDisplay({
       </div>
 
       <div>
-        <h4 className="text-sm font-semibold text-gray-700 mb-2">Missing Supports</h4>
+        <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+          <LifeBuoy className="w-4 h-4 text-amber-600" /> Missing supports to build
+        </h4>
         <div className="space-y-2">
           {loadingWeights && (
             <div className="text-xs text-gray-500">Checking important supports…</div>
@@ -235,11 +319,14 @@ export function LocalExplanationDisplay({
               key={`missing-${item.name}`}
               className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
             >
-              <div className="text-sm text-gray-900">
-                {formatFeatureName(item.name)}: <span className="text-gray-600">No</span>
+              <div className="flex items-center gap-2 text-sm text-gray-900">
+                <LifeBuoy className="w-4 h-4 text-amber-600" aria-hidden="true" />
+                <span>
+                  {formatFeatureName(item.name)}: <span className="text-gray-600">Not present yet</span>
+                </span>
               </div>
               <div className="text-xs px-2 py-1 rounded bg-gray-200 text-gray-800">
-                removes +{formatNumber(item.weight)} support
+                absence reduces graduation odds by {formatNumber(Math.abs(item.weight))}
               </div>
             </div>
           ))}
@@ -250,8 +337,8 @@ export function LocalExplanationDisplay({
         <p className="font-semibold mb-1">What helps most</p>
         <p>
           {topMissing.length > 0
-            ? `If ${formatFeatureName(topMissing[0].name)} is addressed, graduation chances would increase the most (+${formatNumber(topMissing[0].weight)} support).`
-            : 'Reinforce current protective factors, such as strong academics and existing student support programs.'}
+            ? `Focusing on ${formatFeatureName(topMissing[0].name)} would move the prediction toward graduation the most (estimated impact: +${formatNumber(topMissing[0].weight)}).`
+            : 'Reinforce the current protective factors by continuing academic support and regular check-ins.'}
         </p>
       </div>
     </div>

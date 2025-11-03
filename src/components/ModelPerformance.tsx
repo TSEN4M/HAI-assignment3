@@ -58,6 +58,18 @@ export function ModelPerformance() {
   const dec = (v?: number) => (typeof v === 'number' ? v.toFixed(3) : '-');
   const f1 = (p?: number, r?: number) =>
     typeof p === 'number' && typeof r === 'number' && p + r !== 0 ? (2 * p * r) / (p + r) : 0;
+  const pctRounded = (v?: number) => (typeof v === 'number' ? Math.round(v * 100) : null);
+
+  const fairnessBadge = (m: ModelMetrics) => {
+    const spdAbs = Math.abs(m.spd);
+    const eodAbs = Math.abs(m.eod);
+    if (spdAbs < 0.15 && eodAbs < 0.10) return 'Good';
+    if (spdAbs < 0.25 && eodAbs < 0.15) return 'Fair';
+    return 'Poor';
+  };
+
+  const recommended = metrics.find((m) => m.model_type === 'reweighted');
+  const baseline = metrics.find((m) => m.model_type === 'baseline');
 
   return (
     <div className="space-y-6">
@@ -107,6 +119,23 @@ export function ModelPerformance() {
           <p><strong>Recall (TPR):</strong> Of actual graduates, how many were identified?</p>
           <p><strong>F1:</strong> Harmonic mean of precision and recall</p>
         </div>
+
+        {recommended && (
+          <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900 space-y-1">
+            <p>
+              <strong>Quick takeaway:</strong> The Reweighted Model gets about{' '}
+              {pctRounded(recommended.accuracy) ?? '–'} out of 100 students right overall and keeps gender
+              fairness rated as {fairnessBadge(recommended).toLowerCase()}.
+            </p>
+            {baseline && (
+              <p>
+                Compared with the Baseline Model, the Reweighted Model improves parity
+                (SPD {dec(baseline.spd)} → {dec(recommended.spd)}; EOD {dec(baseline.eod)} → {dec(recommended.eod)}).
+              </p>
+            )}
+            <p>Use the tables below whenever you need the detailed numbers.</p>
+          </div>
+        )}
       </div>
 
       {/* FAIRNESS */}
@@ -138,10 +167,7 @@ export function ModelPerformance() {
               {metrics.map((m) => {
                 const spdAbs = Math.abs(m.spd);
                 const eodAbs = Math.abs(m.eod);
-                const fairnessScore =
-                  spdAbs < 0.15 && eodAbs < 0.10 ? 'Good'
-                  : spdAbs < 0.25 && eodAbs < 0.15 ? 'Fair'
-                  : 'Poor';
+                const fairnessScore = fairnessBadge(m);
                 const fairnessColor =
                   fairnessScore === 'Good' ? 'text-green-700 bg-green-100'
                   : fairnessScore === 'Fair' ? 'text-amber-700 bg-amber-100'
