@@ -230,30 +230,33 @@ export function LocalExplanationDisplay({
             )}
             {protective.map((feature) => {
               const absContribution = Math.abs(feature.contribution);
+              const width = Math.min(100, (absContribution / maxAbsContribution) * 100);
               return (
                 <div
                   key={`protective-${feature.name}`}
-                  className="flex items-center gap-3 p-3 bg-white rounded-lg border border-green-100"
+                  className="p-3 bg-white rounded-lg border border-green-100"
                 >
-                  <ShieldCheck className="w-5 h-5 text-green-600 flex-shrink-0" aria-hidden="true" />
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-sm text-gray-900 truncate">
-                      {formatFeatureName(feature.name)}
+                  <div className="flex items-start gap-3">
+                    <ShieldCheck className="w-5 h-5 text-green-600 flex-shrink-0" aria-hidden="true" />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm text-gray-900 truncate">
+                        {formatFeatureName(feature.name)}
+                      </div>
+                      <div className="mt-2 flex items-center gap-3 text-xs text-gray-600">
+                        <span className="flex-shrink-0 whitespace-nowrap">
+                          Value: {formatValue(feature)}
+                        </span>
+                        <div className="relative h-2 flex-1 bg-gray-200 rounded-full overflow-hidden" aria-hidden="true">
+                          <div
+                            className="absolute inset-y-0 left-0 bg-green-600 rounded-full"
+                            style={{ width: `${width}%` }}
+                          />
+                        </div>
+                      </div>
+                      <div className="mt-2 text-xs text-green-700">
+                        Pushes prediction toward graduation by {formatNumber(absContribution)}.
+                      </div>
                     </div>
-                    <div className="text-xs text-gray-600 flex flex-col sm:flex-row sm:items-center sm:gap-1">
-                      <span>Value: {formatValue(feature)}</span>
-                      <span className="text-green-700">
-                        · pushes prediction toward graduation by {formatNumber(absContribution)}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex-shrink-0 w-16 bg-gray-200 rounded-full h-2" aria-hidden="true">
-                    <div
-                      className="h-2 rounded-full bg-green-600"
-                      style={{
-                        width: `${Math.min(100, (absContribution / maxAbsContribution) * 100)}%`,
-                      }}
-                    />
                   </div>
                 </div>
               );
@@ -271,30 +274,33 @@ export function LocalExplanationDisplay({
             )}
             {risks.map((feature) => {
               const absContribution = Math.abs(feature.contribution);
+              const width = Math.min(100, (absContribution / maxAbsContribution) * 100);
               return (
                 <div
                   key={`risk-${feature.name}`}
-                  className="flex items-center gap-3 p-3 bg-white rounded-lg border border-red-100"
+                  className="p-3 bg-white rounded-lg border border-red-100"
                 >
-                  <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0" aria-hidden="true" />
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-sm text-gray-900 truncate">
-                      {formatFeatureName(feature.name)}
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0" aria-hidden="true" />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm text-gray-900 truncate">
+                        {formatFeatureName(feature.name)}
+                      </div>
+                      <div className="mt-2 flex items-center gap-3 text-xs text-gray-600">
+                        <span className="flex-shrink-0 whitespace-nowrap">
+                          Value: {formatValue(feature)}
+                        </span>
+                        <div className="relative h-2 flex-1 bg-gray-200 rounded-full overflow-hidden" aria-hidden="true">
+                          <div
+                            className="absolute inset-y-0 left-0 bg-red-600 rounded-full"
+                            style={{ width: `${width}%` }}
+                          />
+                        </div>
+                      </div>
+                      <div className="mt-2 text-xs text-red-700">
+                        Pulls prediction toward dropout by {formatNumber(absContribution)}.
+                      </div>
                     </div>
-                    <div className="text-xs text-gray-600 flex flex-col sm:flex-row sm:items-center sm:gap-1">
-                      <span>Value: {formatValue(feature)}</span>
-                      <span className="text-red-700">
-                        · pulls prediction toward dropout by {formatNumber(absContribution)}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex-shrink-0 w-16 bg-gray-200 rounded-full h-2" aria-hidden="true">
-                    <div
-                      className="h-2 rounded-full bg-red-600"
-                      style={{
-                        width: `${Math.min(100, (absContribution / maxAbsContribution) * 100)}%`,
-                      }}
-                    />
                   </div>
                 </div>
               );
