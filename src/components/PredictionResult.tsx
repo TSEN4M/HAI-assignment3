@@ -1,5 +1,4 @@
-import { useEffect, useState } from 'react';
-import { AlertCircle, CheckCircle, TrendingDown, TrendingUp, HelpCircle, Flag } from 'lucide-react';
+import { AlertCircle, CheckCircle, TrendingDown, TrendingUp, HelpCircle } from 'lucide-react';
 import { PredictionResult, StudentData, ModelType } from '../types';
 import { LocalExplanationDisplay } from './LocalExplanation';
 
@@ -16,14 +15,6 @@ export function PredictionResultDisplay({
   modelTypeKey,
   studentInput,
 }: PredictionResultProps) {
-  const [followUpFlagged, setFollowUpFlagged] = useState(false);
-  const [advisorNote, setAdvisorNote] = useState('');
-
-  useEffect(() => {
-    setFollowUpFlagged(false);
-    setAdvisorNote('');
-  }, [result]);
-
   const isGraduate = result.prediction === 'Graduate';
   const displayConfidence = Number(result.confidence ?? 0);
   const confidencePercent = (displayConfidence * 100).toFixed(1);
@@ -109,46 +100,6 @@ export function PredictionResultDisplay({
             </p>
           </div>
         </div>
-      </div>
-
-      <div className="border rounded-lg p-4 bg-white space-y-3">
-        <div className="flex items-center gap-2">
-          <Flag className="w-4 h-4 text-blue-600" />
-          <h3 className="font-semibold text-gray-900 text-sm">Advisor follow-up</h3>
-        </div>
-        <p className="text-sm text-gray-700">
-          Track next steps here, then copy them into your case management system.
-        </p>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <button
-            type="button"
-            onClick={() => setFollowUpFlagged((prev) => !prev)}
-            className={`inline-flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition ${
-              followUpFlagged
-                ? 'border-blue-600 bg-blue-50 text-blue-700'
-                : 'border-gray-300 text-gray-700 hover:border-blue-500 hover:text-blue-600'
-            }`}
-          >
-            {followUpFlagged ? <CheckCircle className="w-4 h-4" /> : <Flag className="w-4 h-4" />}
-            {followUpFlagged ? 'Follow-up flagged' : 'Mark for follow-up'}
-          </button>
-        </div>
-        {followUpFlagged && (
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-gray-600" htmlFor="advisor-note">
-              Quick note (optional)
-            </label>
-            <textarea
-              id="advisor-note"
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-              rows={3}
-              placeholder="E.g., email student about tuition balance, schedule mentoring check-in, connect with counseling."
-              value={advisorNote}
-              onChange={(e) => setAdvisorNote(e.target.value)}
-            />
-            <p className="text-xs text-gray-500">Notes are not saved—copy anything important into your advising system.</p>
-          </div>
-        )}
       </div>
 
       <div className="mt-2 p-3 rounded border bg-white">
