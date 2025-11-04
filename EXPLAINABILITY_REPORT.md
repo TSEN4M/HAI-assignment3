@@ -13,7 +13,7 @@ This report documents the explainability enhancements added to the Student Dropo
 We implemented two complementary explanation approaches, directly aligned with course concepts:
 
 #### **Local Explanations (Per-Prediction)**
-- **Method**: LIME-inspired linear approximation
+- **Method**: Coefficient-based feature contributions for logistic regression (exact for LR)
 - **Question Answered**: "Why did the model make THIS prediction for THIS student?"
 - **Implementation**: Feature contribution analysis based on model coefficients and input feature values
 
@@ -24,11 +24,11 @@ We implemented two complementary explanation approaches, directly aligned with c
 
 ### 1.2 Why These Methods?
 
-1. **LIME for Local Explanations**:
-   - Logistic regression models are inherently interpretable (linear relationships)
-   - For each prediction, we calculate: `contribution = feature_value * coefficient`
-   - Shows which specific features pushed the model toward graduation or dropout for that individual
-   - Model-agnostic approach means it works with all four model variants
+1. **Coefficient-based Local Explanations (for LR)**:
+   - Logistic regression is inherently interpretable; the linear terms are the explanation.
+   - For each prediction, we calculate: `contribution = feature_value * coefficient`.
+   - Shows which specific features push the prediction toward graduation or dropout for that individual.
+   - Exact for LR and consistent across our four variants (Baseline, Gender‑Blind, Reweighted, Calibrated — the last adds isotonic calibration on top).
 
 2. **Coefficient Analysis for Global Explanations**:
    - Logistic regression weights directly represent feature importance
@@ -66,10 +66,10 @@ From the lecture materials, the following explanation questions are answered:
 
 ### **WHY: "Why did the model make THIS prediction?"** [x] PRIMARY FOCUS
 - **How Addressed**: Local Explanation section in prediction results
-- **Feature Contributions**: Shows top 5 most impactful features for the specific student
-- **Direction Indicators**: Green (+) means a feature pushes toward graduation, Red (-) means it pushes toward dropout
-- **Interpretation**: Impact values show magnitude of each feature's influence on THIS prediction
-- **Transparency**: Advisors immediately understand what changed the prediction
+- **Feature Contributions**: Protective factors and risk drivers, sorted by impact (not a fixed top‑5)
+- **Direction Indicators**: Icons + labels (Shield = supports graduation; Warning = raises dropout risk) with color‑blind‑friendly styling
+- **Interpretation**: Impact text describes how much each factor pushes/pulls this prediction
+- **Transparency**: “Story in one sentence,” advisor to‑do ideas, and “missing supports” aid actionability
 
 ### **WHY NOT: "Why did the model NOT predict the other class?"**
 - **How Addressed**: Inverse interpretation of feature contributions
@@ -123,16 +123,17 @@ From the lecture materials, the following explanation questions are answered:
 ### 3.2 Frontend (React Components)
 
 #### New Component: `LocalExplanationDisplay` (src/components/LocalExplanation.tsx)
-- Displays top 5 contributing features
-- Visual bars showing relative contribution magnitude
-- Color coding: green (positive impact) vs red (negative impact)
-- Formatted output: readable feature names, impact values
+- Shows protective factors and risk drivers sorted by absolute impact
+- Fixed-length contribution tracks with proportional fill; value + bar on one line; impact text below
+- Color + icon coding (Shield = support, Warning = risk) for accessibility
+- Adds a concise narrative, advisor to‑do ideas, and “missing supports” inferred from global importance
+- Formatted output: readable feature names and impact values
 
 #### New Component: `GlobalExplanationDisplay` (src/components/GlobalExplanation.tsx)
-- Fetches global explanations from backend
-- Ranks all features by importance
-- Bar chart visualization of feature weights
-- Interpretation guidance
+- Fetches (and caches) global explanations by model; ranks features by importance
+- Bar visualization with direction icons and qualitative impact labels (Very strong/Strong/Moderate/Lower)
+- Quick-glance cards: Top supports (helps graduation) and Top risks (pushes toward dropout)
+- Advisor guidance box explains how to use patterns and reminds about dataset limits
 
 #### Updated Component: `PredictionResultDisplay` (src/components/PredictionResult.tsx)
 - Integrates LocalExplanationDisplay
@@ -142,8 +143,8 @@ From the lecture materials, the following explanation questions are answered:
 #### Updated App: Model Explanations Tab
 - New "Model Explanations" tab in main navigation
 - Model selector (Baseline, Gender-Blind, Reweighted, Calibrated)
-- Displays global feature importance for selected model
-- Allows users to understand each model variant's behavior
+- Defaults to Reweighted so explanations load immediately; users can switch models
+- Displays global feature importance for the selected model
 
 ### 3.3 Data Types (src/types/index.ts)
 
@@ -214,11 +215,10 @@ The system now guides users through understanding predictions:
 
 ### 5.2 Visual Design for Clarity
 
-- **Color Coding**: Green = supports graduation; Red = supports dropout (consistent across all explanations)
-- **Direction Arrows**: up and down show impact direction
-- **Impact Bars**: Longer bars = more influence (proportional to contribution magnitude)
-- **Formatted Numbers**: Feature contributions shown with appropriate precision
-- **Interpretation Boxes**: Each explanation includes guidance on how to interpret it
+- **Color + Icons**: Green Shield = supports graduation; Red Warning = raises dropout risk
+- **Fixed Tracks**: Contribution tracks are fixed length; fill shows strength for consistent comparison
+- **Readable Numbers**: Appropriate precision and units (e.g., %)
+- **Narrative & Guidance**: “Story in one sentence” + advisor to‑do ideas support action
 
 ### 5.3 Actionability
 
@@ -242,6 +242,7 @@ For each prediction, advisors can now:
 | "What if I change this student's GPA?" | Local (re-run) | Re-run prediction with new input |
 | "Does this model treat gender fairly?" | Global + Fairness | Model Performance & Fairness tab |
 | "Which model should we use?" | Fairness + Explanation | All tabs combined |
+| "How should I act on this?" | Actionability | Local (story + to‑do), Global (top supports/risks) |
 
 ---
 
@@ -288,9 +289,13 @@ For each prediction, advisors can now:
 
 ### Modified:
 - `server/server.js` - Added explanation endpoints and feature contribution calculation
-- `src/types/index.ts` - Added explanation data types
-- `src/components/PredictionResult.tsx` - Integrated local explanations
-- `src/App.tsx` - Added Model Explanations tab
+- `src/types/index.ts` - Added explanation data types and `MODEL_LABELS` for consistent model names
+- `src/components/PredictionResult.tsx` - Integrated local explanations and cautionary copy
+- `src/components/LocalExplanation.tsx` - Accessibility icons, fixed tracks, narrative + to‑do ideas, missing supports
+- `src/components/GlobalExplanation.tsx` - Impact labels, top supports/risks, advisor guidance
+- `src/components/ModelPerformance.tsx` - Quick takeaway, fairness badges; uses centralized labels
+- `src/App.tsx` - Added Model Explanations tab and default selection to Reweighted model
+- `src/main.tsx` - Removed debug logging
 
 ---
 
@@ -299,18 +304,18 @@ For each prediction, advisors can now:
 To test the explainability system:
 
 1. **Local Explanations**: Make predictions and verify:
-   - Top 5 features are displayed
+   - Protective factors and risk drivers are displayed, sorted by impact
    - Contributions match feature_value * coefficient
    - Color coding matches prediction direction (Graduate=green push, Dropout=red push)
 
 2. **Global Explanations**: Check Model Explanations tab:
    - Features ranked by importance
    - Weights match model coefficients
-   - Different models show different patterns
+   - Different models show different patterns (with top supports/risks and qualitative impact labels)
 
 3. **Consistency**: Verify:
    - Same model produces same explanations
-   - Changing inputs changes explanations predictably
+   - Changing inputs changes local explanations predictably
    - Local features align with global importance
 
 4. **Fairness Context**: Ensure:
