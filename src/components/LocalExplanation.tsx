@@ -121,6 +121,9 @@ export function LocalExplanationDisplay({
     return map;
   }, [explanation.features]);
 
+  const PROTECTIVE_LIMIT = 2;
+  const RISK_LIMIT = 2;
+
   const protective = [...explanation.features]
     .filter((feature) => feature.contribution > 0)
     .sort((a, b) => Math.abs(b.contribution) - Math.abs(a.contribution));
@@ -220,6 +223,14 @@ export function LocalExplanationDisplay({
     return `${sign}${(diff * 100).toFixed(1)} pts vs baseline`;
   };
 
+  const [showAllProtective, setShowAllProtective] = useState(false);
+  const [showAllRisks, setShowAllRisks] = useState(false);
+
+  const visibleProtective = showAllProtective
+    ? protective
+    : protective.slice(0, PROTECTIVE_LIMIT);
+  const visibleRisks = showAllRisks ? risks : risks.slice(0, RISK_LIMIT);
+
   return (
     <div className="space-y-4">
       <div>
@@ -269,7 +280,7 @@ export function LocalExplanationDisplay({
             {protective.length === 0 && (
               <div className="text-xs text-gray-500">No strong protective factors detected.</div>
             )}
-            {protective.map((feature) => {
+            {visibleProtective.map((feature) => {
               const absContribution = Math.abs(feature.contribution);
               const width = Math.min(100, (absContribution / maxAbsContribution) * 100);
               return (
@@ -303,6 +314,15 @@ export function LocalExplanationDisplay({
                 </div>
               );
             })}
+            {protective.length > PROTECTIVE_LIMIT && (
+              <button
+                type="button"
+                className="text-xs font-medium text-blue-600 hover:text-blue-800"
+                onClick={() => setShowAllProtective((prev) => !prev)}
+              >
+                {showAllProtective ? 'Show fewer protective factors' : `Show all ${protective.length} factors`}
+              </button>
+            )}
           </div>
         </div>
 
@@ -314,7 +334,7 @@ export function LocalExplanationDisplay({
             {risks.length === 0 && (
               <div className="text-xs text-gray-500">No strong risk drivers detected.</div>
             )}
-            {risks.map((feature) => {
+            {visibleRisks.map((feature) => {
               const absContribution = Math.abs(feature.contribution);
               const width = Math.min(100, (absContribution / maxAbsContribution) * 100);
               return (
@@ -348,6 +368,15 @@ export function LocalExplanationDisplay({
                 </div>
               );
             })}
+            {risks.length > RISK_LIMIT && (
+              <button
+                type="button"
+                className="text-xs font-medium text-blue-600 hover:text-blue-800"
+                onClick={() => setShowAllRisks((prev) => !prev)}
+              >
+                {showAllRisks ? 'Show fewer risk drivers' : `Show all ${risks.length} drivers`}
+              </button>
+            )}
           </div>
         </div>
       </div>
