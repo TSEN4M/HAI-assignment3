@@ -247,6 +247,16 @@ export function StudentInputForm({ onSubmit, loading }: StudentInputFormProps) {
           {showAdvanced && ' (and check Advanced fields)'}.
         </p>
       )}
+
+      <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+        <h3 className="font-semibold text-gray-900 mb-2 text-sm">Use With Care</h3>
+        <ul className="text-sm text-gray-700 space-y-1 list-disc ml-4">
+          <li>Combine this prediction with your own judgment and up-to-date student context.</li>
+          <li>Confidence scores are estimates, not guarantees of success or failure.</li>
+          <li>Fairness metrics across gender groups are summarized on the Model Performance tab.</li>
+          <li>Blank fields use training medians; update values when fresher data is available.</li>
+        </ul>
+      </div>
     </form>
   );
 }

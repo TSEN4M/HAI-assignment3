@@ -110,15 +110,6 @@ export function PredictionResultDisplay({
         </p>
       </div>
 
-      <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-        <h3 className="font-semibold text-gray-900 mb-2 text-sm">Use With Care</h3>
-        <ul className="text-sm text-gray-700 space-y-1 list-disc ml-4">
-          <li>This is one data point—combine it with your judgment and recent student context.</li>
-          <li>Confidence scores are estimates, not guarantees of success or failure.</li>
-          <li>Fairness checks across gender groups are summarized on the Model Performance tab.</li>
-          <li>Blank form fields rely on training medians; update values when fresher data is available.</li>
-        </ul>
-      </div>
     </div>
   );
 }

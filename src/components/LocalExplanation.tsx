@@ -244,13 +244,7 @@ export function LocalExplanationDisplay({
           about dropout risk. <LifeBuoy className="inline h-3 w-3 text-amber-600 align-text-top" aria-hidden="true" /> highlights
           important supports currently missing for this {predictedClass} prediction.
         </p>
-        <p className="text-xs text-gray-600 mt-2">
-          Starting point (baseline): {formatPercent(baselineProb)} chance of graduation before considering this student's
-          specific details (log-odds baseline {formatNumber(explanation.base_value)}).
-        </p>
-        <p className="text-xs text-gray-500 mt-1">
-          Positive contributions increase graduation odds; negative contributions raise dropout risk. Values are shown in log-odds with approximate probability shifts.
-        </p>
+
       </div>
 
       {summary && (
