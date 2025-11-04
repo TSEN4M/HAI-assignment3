@@ -247,14 +247,12 @@ export function LocalExplanationDisplay({
                           Value: {formatValue(feature)}
                         </span>
                         <div
-                          className="relative h-2 w-32 sm:w-40 bg-gray-200 rounded-full overflow-hidden"
+                          className="h-2 w-32 sm:w-40 rounded-full border border-green-200"
                           aria-hidden="true"
-                        >
-                          <div
-                            className="absolute inset-y-0 left-0 bg-green-600 rounded-full"
-                            style={{ width: `${width}%` }}
-                          />
-                        </div>
+                          style={{
+                            background: `linear-gradient(to right, rgb(22,163,74) ${width}%, rgba(22,163,74,0.15) ${width}%)`,
+                          }}
+                        />
                       </div>
                       <div className="mt-2 text-xs text-green-700">
                         Pushes prediction toward graduation by {formatNumber(absContribution)}.
@@ -294,14 +292,12 @@ export function LocalExplanationDisplay({
                           Value: {formatValue(feature)}
                         </span>
                         <div
-                          className="relative h-2 w-32 sm:w-40 bg-gray-200 rounded-full overflow-hidden"
+                          className="h-2 w-32 sm:w-40 rounded-full border border-red-200"
                           aria-hidden="true"
-                        >
-                          <div
-                            className="absolute inset-y-0 left-0 bg-red-600 rounded-full"
-                            style={{ width: `${width}%` }}
-                          />
-                        </div>
+                          style={{
+                            background: `linear-gradient(to right, rgb(220,38,38) ${width}%, rgba(220,38,38,0.15) ${width}%)`,
+                          }}
+                        />
                       </div>
                       <div className="mt-2 text-xs text-red-700">
                         Pulls prediction toward dropout by {formatNumber(absContribution)}.
