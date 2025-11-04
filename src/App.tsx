@@ -12,16 +12,10 @@ function App() {
   const [activeTab, setActiveTab] = useState<'predict' | 'performance' | 'explanations'>('predict');
   const [prediction, setPrediction] = useState<PredictionResult | null>(null);
   const [lastInput, setLastInput] = useState<StudentData | null>(null);
-  const [selectedModelLabel, setSelectedModelLabel] = useState<string>('');
-  const [selectedModelType, setSelectedModelType] = useState<ModelType | null>(null);
+  const [selectedModelLabel, setSelectedModelLabel] = useState<string>(MODEL_LABELS.reweighted);
+  const [selectedModelType, setSelectedModelType] = useState<ModelType>('reweighted');
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (activeTab === 'explanations' && !selectedModelType) {
-      setSelectedModelType('reweighted');
-      setSelectedModelLabel(MODEL_LABELS.reweighted);
-    }
-  }, [activeTab, selectedModelType]);
 
   const handlePrediction = async (data: StudentData, modelType: ModelType) => {
     setLoading(true);
@@ -183,7 +177,7 @@ function App() {
                               : 'border-gray-200 hover:border-gray-300'
                           }`}
                         >
-                          <div className="font-medium text-gray-900">{names[modelKey]}</div>
+                          <div className="font-medium text-gray-900">{label}</div>
                         </button>
                       );
                     })}
