@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { BarChart3, Users, Scale } from 'lucide-react';
-import { ModelMetrics, ModelType } from '../types';
+import { ModelMetrics, ModelType, MODEL_LABELS } from '../types';
 
 const API_BASE = import.meta.env.VITE_SUPABASE_URL;
 
@@ -43,16 +43,6 @@ export function ModelPerformance() {
   if (error) {
     return <div className="text-center py-8 text-red-600">{error}</div>;
   }
-
-  const getModelName = (type: ModelType | string) => {
-    const names: Record<string, string> = {
-      baseline: 'Baseline Model',
-      drop_gender: 'Gender-Blind Model',
-      reweighted: 'Reweighted Model (Recommended)',
-      calibrated: 'Calibrated Model',
-    };
-    return names[type] || type;
-  };
 
   const pct = (v?: number) => (typeof v === 'number' ? `${(v * 100).toFixed(1)}%` : '-');
   const dec = (v?: number) => (typeof v === 'number' ? v.toFixed(3) : '-');
@@ -102,7 +92,7 @@ export function ModelPerformance() {
             <tbody>
               {metrics.map((m) => (
                 <tr key={m.model_type} className="border-b border-gray-100 hover:bg-gray-50">
-                  <td className="py-3 px-4 font-medium text-gray-900">{getModelName(m.model_type)}</td>
+                  <td className="py-3 px-4 font-medium text-gray-900">{MODEL_LABELS[m.model_type] ?? m.model_type}</td>
                   <td className="text-center py-3 px-4">{pct(m.accuracy)}</td>
                   <td className="text-center py-3 px-4">{pct(m.precision)}</td>
                   <td className="text-center py-3 px-4">{pct(m.recall)}</td>
@@ -175,7 +165,7 @@ export function ModelPerformance() {
 
                 return (
                   <tr key={m.model_type} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="py-3 px-4 font-medium text-gray-900">{getModelName(m.model_type)}</td>
+                    <td className="py-3 px-4 font-medium text-gray-900">{MODEL_LABELS[m.model_type] ?? m.model_type}</td>
                     <td className="text-center py-3 px-4">{dec(m.spd)}</td>
                     <td className="text-center py-3 px-4">{dec(m.eod)}</td>
                     <td className="text-center py-3 px-4">
@@ -210,7 +200,7 @@ export function ModelPerformance() {
             const mF1 = f1(m.male_precision, m.male_recall);
             return (
               <div key={m.model_type} className="border-2 border-gray-200 rounded-lg p-4">
-                <h3 className="font-semibold text-gray-900 mb-4">{getModelName(m.model_type)}</h3>
+                <h3 className="font-semibold text-gray-900 mb-4">{MODEL_LABELS[m.model_type] ?? m.model_type}</h3>
 
                 <div className="space-y-3">
                   <div>

@@ -3,6 +3,13 @@
 export type YesNo = 'Yes' | 'No';
 export type ModelType = 'baseline' | 'drop_gender' | 'reweighted' | 'calibrated';
 
+export const MODEL_LABELS: Record<ModelType, string> = {
+  baseline: 'Baseline Model',
+  drop_gender: 'Gender-Blind Model',
+  reweighted: 'Reweighted Model (Recommended)',
+  calibrated: 'Calibrated Model',
+} as const;
+
 export interface StudentData {
   Admission_grade: number;
   Age_at_enrollment: number;

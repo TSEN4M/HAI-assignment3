@@ -4,7 +4,7 @@ import { StudentInputForm } from './components/StudentInputForm';
 import { PredictionResultDisplay } from './components/PredictionResult';
 import { ModelPerformance } from './components/ModelPerformance';
 import { GlobalExplanationDisplay } from './components/GlobalExplanation';
-import { StudentData, ModelType, PredictionResult } from './types';
+import { StudentData, ModelType, PredictionResult, MODEL_LABELS } from './types';
 
 const API_BASE = import.meta.env.VITE_SUPABASE_URL;
 
@@ -42,7 +42,7 @@ function App() {
 
       const result: PredictionResult = await response.json();
       setPrediction(result);
-      setSelectedModelLabel(getModelName(modelType));
+      setSelectedModelLabel(MODEL_LABELS[modelType] ?? modelType);
       setSelectedModelType(modelType);
     } catch (error) {
       console.error('Error making prediction:', error);
@@ -50,16 +50,6 @@ function App() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const getModelName = (type: string) => {
-    const names: Record<string, string> = {
-      baseline: 'Baseline Model',
-      drop_gender: 'Gender-Blind Model',
-      reweighted: 'Reweighted Model (Recommended)',
-      calibrated: 'Calibrated Model',
-    };
-    return names[type] || type;
   };
 
   return (
@@ -172,18 +162,13 @@ function App() {
                   <h3 className="font-semibold text-gray-900 mb-3">Select a Model to Explore</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {(['baseline', 'drop_gender', 'reweighted', 'calibrated'] as ModelType[]).map((modelKey) => {
-                      const names: Record<ModelType, string> = {
-                        baseline: 'Baseline Model',
-                        drop_gender: 'Gender-Blind Model',
-                        reweighted: 'Reweighted Model (Recommended)',
-                        calibrated: 'Calibrated Model',
-                      };
+                      const label = MODEL_LABELS[modelKey] ?? modelKey;
                       return (
                         <button
                           key={modelKey}
                           onClick={() => {
                             setSelectedModelType(modelKey);
-                            setSelectedModelLabel(names[modelKey]);
+                            setSelectedModelLabel(label);
                           }}
                           className={`p-3 rounded-lg border transition text-left ${
                             selectedModelType === modelKey
