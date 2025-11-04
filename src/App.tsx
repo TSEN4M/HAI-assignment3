@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { GraduationCap, Info } from 'lucide-react';
 import { StudentInputForm } from './components/StudentInputForm';
 import { PredictionResultDisplay } from './components/PredictionResult';
@@ -15,6 +15,13 @@ function App() {
   const [selectedModelLabel, setSelectedModelLabel] = useState<string>('');
   const [selectedModelType, setSelectedModelType] = useState<ModelType | null>(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (activeTab === 'explanations' && !selectedModelType) {
+      setSelectedModelType('reweighted');
+      setSelectedModelLabel(MODEL_LABELS.reweighted);
+    }
+  }, [activeTab, selectedModelType]);
 
   const handlePrediction = async (data: StudentData, modelType: ModelType) => {
     setLoading(true);
