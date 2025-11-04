@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Zap } from 'lucide-react';
+import { AlertTriangle, Info, ShieldCheck, Zap } from 'lucide-react';
 import { ModelType, GlobalExplanation } from '../types';
 
 const API_BASE = import.meta.env.VITE_SUPABASE_URL;
@@ -60,6 +60,16 @@ export function GlobalExplanationDisplay({ modelType }: GlobalExplanationProps) 
     [],
   );
 
+  const impactLabel = (importanceRatio: number): string => {
+    if (importanceRatio >= 0.75) return 'Very strong impact';
+    if (importanceRatio >= 0.5) return 'Strong impact';
+    if (importanceRatio >= 0.25) return 'Moderate impact';
+    return 'Lower impact';
+  };
+
+  const directionLabel = (isPositive: boolean): string =>
+    isPositive ? 'Supports graduation' : 'Raises dropout risk';
+
   if (loading) {
     return <div className="text-center py-6 text-gray-600">Loading model explanation...</div>;
   }
@@ -69,6 +79,14 @@ export function GlobalExplanationDisplay({ modelType }: GlobalExplanationProps) 
   }
 
   const maxImportance = Math.max(...explanation.features.map(f => f.importance));
+  const positives = explanation.features
+    .filter((feature) => feature.weight > 0)
+    .sort((a, b) => b.importance - a.importance)
+    .slice(0, 3);
+  const negatives = explanation.features
+    .filter((feature) => feature.weight < 0)
+    .sort((a, b) => b.importance - a.importance)
+    .slice(0, 3);
 
   return (
     <div className="space-y-4">
@@ -77,34 +95,87 @@ export function GlobalExplanationDisplay({ modelType }: GlobalExplanationProps) 
         <h3 className="font-semibold text-gray-900">Model Feature Importance</h3>
       </div>
 
-      <p className="text-sm text-gray-600">
-        These features have the strongest influence on predictions across all students. Positive weights increase
-        graduation likelihood; negative weights increase dropout likelihood.
-      </p>
+      <div className="space-y-3 text-sm text-gray-600">
+        <p>
+          This view shows the model{"'"}s overall patterns — which student factors the selected model leans on most.
+        </p>
+        <p className="text-xs text-gray-500">
+          Larger bars mean a bigger influence on decisions across all students in training data. Use this as context and
+          pair it with student-specific explanations when advising.
+        </p>
+      </div>
 
-      <div className="space-y-3">
+      <div className="grid gap-3 md:grid-cols-2">
+        <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-900 space-y-2">
+          <div className="flex items-center gap-2 font-semibold">
+            <ShieldCheck className="h-4 w-4" />
+            Top supports in this model
+          </div>
+          {positives.length ? (
+            <ul className="list-disc space-y-1 pl-4">
+              {positives.map((feature) => (
+                <li key={`support-${feature.feature}`}>
+                  {formatFeatureName(feature.feature)} — helps the model favor graduation.
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p>No strong supportive factors identified.</p>
+          )}
+        </div>
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-900 space-y-2">
+          <div className="flex items-center gap-2 font-semibold">
+            <AlertTriangle className="h-4 w-4" />
+            Top risks in this model
+          </div>
+          {negatives.length ? (
+            <ul className="list-disc space-y-1 pl-4">
+              {negatives.map((feature) => (
+                <li key={`risk-${feature.feature}`}>
+                  {formatFeatureName(feature.feature)} — pushes predictions toward dropout.
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p>No strong risk factors identified.</p>
+          )}
+        </div>
+      </div>
+
+      <div className="space-y-4">
         {explanation.features.map((feature, idx) => {
           const isPositive = feature.weight > 0;
           const normWidth = (feature.importance / maxImportance) * 100;
-
+          const ratio = feature.importance / maxImportance;
           return (
-            <div key={idx} className="flex items-center gap-3">
-              <div className="w-32 text-sm font-medium text-gray-700 truncate">
-                {formatFeatureName(feature.feature)}
-              </div>
-
-              <div className="flex-1 flex items-center gap-2">
-                <div className="flex-1 bg-gray-200 rounded-full h-2 overflow-hidden">
-                  <div
-                    className={`h-2 rounded-full transition-all ${isPositive ? 'bg-green-600' : 'bg-red-600'}`}
-                    style={{ width: `${normWidth}%` }}
-                  />
+            <div key={idx} className="space-y-1 rounded-lg border border-gray-100 bg-white/50 p-3">
+              <div className="flex items-start gap-3">
+                <div className="w-32 flex-shrink-0 text-sm font-medium text-gray-800 truncate">
+                  {formatFeatureName(feature.feature)}
                 </div>
-              </div>
-
-              <div className="w-16 text-right">
-                <div className={`text-sm font-bold ${isPositive ? 'text-green-700' : 'text-red-700'}`}>
-                  {isPositive ? '+' : '−'}{formatNumber(feature.weight)}
+                <div className="flex-1">
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 bg-gray-200 h-2 rounded-full overflow-hidden" aria-hidden="true">
+                      <div
+                        className={`h-full ${isPositive ? 'bg-green-600' : 'bg-red-600'}`}
+                        style={{ width: `${normWidth}%` }}
+                      />
+                    </div>
+                    <span className={`text-sm font-semibold ${isPositive ? 'text-green-700' : 'text-red-700'}`}>
+                      {isPositive ? '+' : '−'}
+                      {formatNumber(feature.weight)}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-gray-600 mt-1">
+                    {isPositive ? (
+                      <ShieldCheck className="h-3 w-3 text-green-600" aria-hidden="true" />
+                    ) : (
+                      <AlertTriangle className="h-3 w-3 text-red-600" aria-hidden="true" />
+                    )}
+                    <span>
+                      {impactLabel(ratio)} · {directionLabel(isPositive)}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -112,13 +183,15 @@ export function GlobalExplanationDisplay({ modelType }: GlobalExplanationProps) 
         })}
       </div>
 
-      <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800 space-y-1">
-        <p className="font-semibold">Understanding Feature Importance:</p>
-        <ul className="list-disc list-inside space-y-0.5">
-          <li>Longer bars = stronger influence on predictions</li>
-          <li>Green = increases likelihood of predicted class</li>
-          <li>Red = decreases likelihood of predicted class</li>
-          <li>This is the model's learned behavior across all students in training</li>
+      <div className="space-y-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-xs text-amber-900">
+        <div className="flex items-center gap-2 font-semibold text-amber-800">
+          <Info className="h-4 w-4" />
+          How advisors can use this
+        </div>
+        <ul className="list-disc space-y-1 pl-4">
+          <li>Scan top supports/risks to identify common leverage points to discuss with students.</li>
+          <li>Use this alongside individual explanations — this shows patterns, not guaranteed causes.</li>
+          <li>Model was trained on Portuguese higher-ed data; confirm factors match your institution before acting.</li>
         </ul>
       </div>
     </div>
