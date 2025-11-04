@@ -1,0 +1,29 @@
+{
+  "with_gender": {
+    "Admission grade": 127.36017316017315,
+    "Age at enrollment": 23.493900039354585,
+    "Scholarship holder": 0.26210153482880755,
+    "Tuition fees up to date": 0.8693427784336876,
+    "Displaced": 0.559228650137741,
+    "Educational special needs": 0.01023219205037387,
+    "Debtor": 0.10901219992129083,
+    "International": 0.024006296733569462,
+    "Unemployment rate": 11.59830775285321,
+    "Inflation rate": 1.2432506887052344,
+    "GDP": 0.003404171585989784,
+    "Gender": 0.34395907123179853
+  },
+  "no_gender": {
+    "Admission grade": 127.36017316017315,
+    "Age at enrollment": 23.493900039354585,
+    "Scholarship holder": 0.26210153482880755,
+    "Tuition fees up to date": 0.8693427784336876,
+    "Displaced": 0.559228650137741,
+    "Educational special needs": 0.01023219205037387,
+    "Debtor": 0.10901219992129083,
+    "International": 0.024006296733569462,
+    "Unemployment rate": 11.59830775285321,
+    "Inflation rate": 1.2432506887052344,
+    "GDP": 0.003404171585989784
+  }
+}

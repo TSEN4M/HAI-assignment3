@@ -45,7 +45,7 @@ export interface FeatureContribution {
   name: string;
   value: number;
   weight: number;
-  contribution: number;
+  contribution: number; // SHAP value in log-odds units
   impact: 'increases' | 'decreases';
 }
 

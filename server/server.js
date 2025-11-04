@@ -39,6 +39,7 @@ const metrics = readJson("./metrics.json");
 // NEW — unwrap when the file is shaped as { defaults: {...}, ... }
 const defaultsRaw = readJson("./defaults.json");
 const defaults = defaultsRaw?.defaults ?? defaultsRaw;
+const shapFeatureMeans = readJson("./shap_feature_mean.json");
 
 
 // ---------- Load models (as you exported them) ----------
@@ -254,6 +255,7 @@ function getModelParams(modelType) {
       features: modelBaseline.schema.features,
       coef: modelBaseline.logreg.coef,
       intercept: modelBaseline.logreg.intercept,
+      shapMeanKey: "with_gender",
     };
   }
   if (canonical === "drop_gender") {
@@ -261,6 +263,7 @@ function getModelParams(modelType) {
       features: modelDropGender.schema.features,
       coef: modelDropGender.logreg.coef,
       intercept: modelDropGender.logreg.intercept,
+      shapMeanKey: "no_gender",
     };
   }
   if (canonical === "reweighted") {
@@ -268,6 +271,7 @@ function getModelParams(modelType) {
       features: modelReweighted.schema.features,
       coef: modelReweighted.logreg.coef,
       intercept: modelReweighted.logreg.intercept,
+      shapMeanKey: "with_gender",
     };
   }
   if (canonical === "calibrated") {
@@ -277,30 +281,49 @@ function getModelParams(modelType) {
       intercept: modelCalibrated.base.intercept,
       isCalibrated: true,
       isotonic: modelCalibrated.isotonic,
+      shapMeanKey: "no_gender",
     };
   }
 
   return undefined;
 }
 
-// Calculate linear terms (feature contributions) for LIME-like local explanations
-function calculateFeatureContributions(modelType, studentRaw) {
-  const S = normalizeStudent(studentRaw);
-  const params = getModelParams(modelType);
+function getShapMeanFor(params, featureName) {
+  if (!params.shapMeanKey) {
+    throw new Error(`SHAP mean key missing for feature "${featureName}"`);
+  }
+  const bucket = shapFeatureMeans[params.shapMeanKey];
+  if (!bucket) {
+    throw new Error(`Missing SHAP mean bucket "${params.shapMeanKey}"`);
+  }
+  const value = bucket[featureName];
+  if (value === undefined) {
+    throw new Error(
+      `Missing SHAP mean value for feature "${featureName}" in bucket "${params.shapMeanKey}"`
+    );
+  }
+  return Number(value);
+}
 
+function calculateShapContributions(modelType, studentRaw) {
+  const params = getModelParams(modelType);
   if (!params) throw new Error(`Unknown model_type "${modelType}"`);
 
+  const S = normalizeStudent(studentRaw);
   const x = buildX(params.features, S);
-  const z = dot(params.coef, x) + params.intercept;
+  const xRef = params.features.map((fname) => getShapMeanFor(params, fname));
 
-  const contributions = params.features.map((fname, i) => ({
+  const outputValue = dot(params.coef, x) + params.intercept;
+  const baseValue = dot(params.coef, xRef) + params.intercept;
+
+  const shapValues = params.features.map((fname, i) => ({
     feature: fname,
     value: x[i],
     weight: params.coef[i],
-    contribution: x[i] * params.coef[i],
+    shap: params.coef[i] * (x[i] - xRef[i]),
   }));
 
-  return { contributions, z, intercept: params.intercept };
+  return { shapValues, baseValue, outputValue };
 }
 
 // Main prediction endpoint with explanations
@@ -322,15 +345,14 @@ app.post("/functions/v1/predict-dropout", (req, res) => {
     const conf = Math.min(1, Math.max(0, Number(confidence)));
 
     // Calculate local explanations
-    const { contributions, z, intercept } = calculateFeatureContributions(
+    const { shapValues, baseValue, outputValue } = calculateShapContributions(
       canonicalType,
       student_data
     );
 
-    // Sort by absolute contribution to show most impactful features
-    const topContributions = contributions
-      .sort((a, b) => Math.abs(b.contribution) - Math.abs(a.contribution))
-      .slice(0, 5);
+    const sortedShap = [...shapValues].sort(
+      (a, b) => Math.abs(b.shap) - Math.abs(a.shap)
+    );
 
     res.json({
       prediction,
@@ -338,15 +360,16 @@ app.post("/functions/v1/predict-dropout", (req, res) => {
       probGraduate,
       model_type: canonicalType,
       explanation: {
-        type: "lime",
-        base_value: intercept,
-        output_value: z,
-        features: topContributions.map(c => ({
+        type: "shap_linear",
+        domain: "logit",
+        base_value: baseValue,
+        output_value: outputValue,
+        features: sortedShap.map((c) => ({
           name: c.feature,
           value: c.value,
           weight: c.weight,
-          contribution: c.contribution,
-          impact: c.contribution > 0 ? "increases" : "decreases",
+          contribution: c.shap,
+          impact: c.shap > 0 ? "increases" : "decreases",
         })),
       },
     });
@@ -412,17 +435,17 @@ app.post("/explanations/local", (req, res) => {
       return res.status(400).json({ error: `Unknown model_type "${model_type}"` });
     }
 
-    const { contributions, z, intercept } = calculateFeatureContributions(
+    const { shapValues, baseValue, outputValue } = calculateShapContributions(
       canonicalType,
       input
     );
 
-    const sorted = [...contributions].sort(
-      (a, b) => Math.abs(b.contribution) - Math.abs(a.contribution)
+    const sorted = [...shapValues].sort(
+      (a, b) => Math.abs(b.shap) - Math.abs(a.shap)
     );
 
-    const topPositive = sorted.find((c) => c.contribution > 0);
-    const topNegative = sorted.find((c) => c.contribution < 0);
+    const topPositive = sorted.find((c) => c.shap > 0);
+    const topNegative = sorted.find((c) => c.shap < 0);
 
     const formatFeature = (name) =>
       name
@@ -431,19 +454,19 @@ app.post("/explanations/local", (req, res) => {
         .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
         .join(" ");
 
-    let summary = "Local explanation generated from logistic regression coefficients.";
+    let summary = "SHAP explanation derived from logistic regression coefficients.";
     if (topPositive || topNegative) {
       const pieces = [];
       if (topPositive) {
         pieces.push(
-          `${formatFeature(topPositive.feature)} pushes toward graduation (+${topPositive.contribution.toFixed(
+          `${formatFeature(topPositive.feature)} supports graduation (+${topPositive.shap.toFixed(
             2
-          )}).`
+          )} log-odds).`
         );
       }
       if (topNegative) {
         pieces.push(
-          `${formatFeature(topNegative.feature)} pushes toward dropout (${topNegative.contribution.toFixed(2)}).`
+          `${formatFeature(topNegative.feature)} raises dropout risk (${topNegative.shap.toFixed(2)} log-odds).`
         );
       }
       summary = pieces.join(" ");
@@ -451,12 +474,12 @@ app.post("/explanations/local", (req, res) => {
 
     res.json({
       model_type: canonicalType,
-      base_value: intercept,
-      output_value: z,
+      base_value: baseValue,
+      output_value: outputValue,
       contribs: sorted.map((c) => ({
         feature: c.feature,
         value: c.value,
-        effect: c.contribution,
+        effect: c.shap,
       })),
       summary,
     });

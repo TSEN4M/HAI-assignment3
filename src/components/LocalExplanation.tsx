@@ -68,8 +68,11 @@ export function LocalExplanationDisplay({
     if (!Number.isFinite(num)) return '0';
     const rounded = Math.round(num);
     if (Math.abs(num - rounded) < 1e-6) return String(rounded);
-    return Math.abs(num) < 0.001 ? num.toFixed(4) : num.toFixed(3);
+    return num.toFixed(2);
   };
+
+  const logitToProb = (logit: number): number => 1 / (1 + Math.exp(-logit));
+  const formatPercent = (prob: number): string => `${Math.min(100, Math.max(0, prob * 100)).toFixed(1)}%`;
 
   const formatValue = (feature: FeatureContribution): string => {
     const { name, value } = feature;
@@ -182,6 +185,14 @@ export function LocalExplanationDisplay({
     return suggestions;
   }, [protective, risks, topMissing]);
 
+  const baselineProb = logitToProb(explanation.base_value);
+  const describeProbabilityShift = (deltaLogit: number): string => {
+    const adjustedProb = logitToProb(explanation.base_value + deltaLogit);
+    const diff = adjustedProb - baselineProb;
+    const sign = diff >= 0 ? '+' : '';
+    return `${sign}${(diff * 100).toFixed(1)} pts vs baseline`;
+  };
+
   return (
     <div className="space-y-4">
       <div>
@@ -196,8 +207,11 @@ export function LocalExplanationDisplay({
           important supports currently missing for this {predictedClass} prediction.
         </p>
         <p className="text-xs text-gray-600 mt-2">
-          Starting point (baseline): {formatNumber(explanation.base_value)} leaning toward{' '}
-          {explanation.base_value >= 0 ? 'graduation' : 'dropout'} before looking at this student's details.
+          Starting point (baseline): {formatPercent(baselineProb)} chance of graduation before considering this student's
+          specific details (log-odds baseline {formatNumber(explanation.base_value)}).
+        </p>
+        <p className="text-xs text-gray-500 mt-1">
+          Positive contributions increase graduation odds; negative contributions raise dropout risk. Values are shown in log-odds with approximate probability shifts.
         </p>
       </div>
 
@@ -255,7 +269,7 @@ export function LocalExplanationDisplay({
                         />
                       </div>
                       <div className="mt-2 text-xs text-green-700">
-                        Pushes prediction toward graduation by {formatNumber(absContribution)}.
+                        Pushes prediction toward graduation by {formatNumber(absContribution)} log-odds ({describeProbabilityShift(absContribution)}).
                       </div>
                     </div>
                   </div>
@@ -300,7 +314,7 @@ export function LocalExplanationDisplay({
                         />
                       </div>
                       <div className="mt-2 text-xs text-red-700">
-                        Pulls prediction toward dropout by {formatNumber(absContribution)}.
+                        Pulls prediction toward dropout by {formatNumber(absContribution)} log-odds ({describeProbabilityShift(-absContribution)}).
                       </div>
                     </div>
                   </div>

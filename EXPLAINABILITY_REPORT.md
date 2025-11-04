@@ -13,7 +13,7 @@ This report documents the explainability enhancements added to the Student Dropo
 We implemented two complementary explanation approaches, directly aligned with course concepts:
 
 #### **Local Explanations (Per-Prediction)**
-- **Method**: Coefficient-based feature contributions for logistic regression (exact for LR)
+- **Method**: SHAP (linear/LR formulation) with training-set means as background
 - **Question Answered**: "Why did the model make THIS prediction for THIS student?"
 - **Implementation**: Feature contribution analysis based on model coefficients and input feature values
 
@@ -24,17 +24,36 @@ We implemented two complementary explanation approaches, directly aligned with c
 
 ### 1.2 Why These Methods?
 
-1. **Coefficient-based Local Explanations (for LR)**:
-   - Logistic regression is inherently interpretable; the linear terms are the explanation.
-   - For each prediction, we calculate: `contribution = feature_value * coefficient`.
-   - Shows which specific features push the prediction toward graduation or dropout for that individual.
-   - Exact for LR and consistent across our four variants (Baseline, Gender‑Blind, Reweighted, Calibrated — the last adds isotonic calibration on top).
+1. **SHAP (Linear) for Local Explanations**:
+   - SHAP provides additive, baseline-referenced attributions and satisfies desired axioms (local accuracy, consistency).
+   - For logistic regression, Linear SHAP is exact and simplifies to: `φ_j = coefficient_j × (value_j − feature_mean_j)`.
+   - We use the training feature means (with_gender / no_gender) as background, so explanations are centered on the “typical” student.
+   - Works consistently across all four variants (Baseline, Gender-Blind, Reweighted, Calibrated — the last applies isotonic calibration after the LR, but SHAP operates on the LR log-odds).
 
 2. **Coefficient Analysis for Global Explanations**:
    - Logistic regression weights directly represent feature importance
    - Larger absolute coefficients = stronger influence on predictions
    - Transparent and mathematically grounded (no black box)
    - Consistent across all student cases
+
+### 1.3 Method Selection Rationale (Why not X?)
+
+- **Why SHAP Linear instead of plain coefficients?**
+  - SHAP supplies a clear baseline (expected log-odds using training means) and additive attributions that sum exactly to the prediction.
+  - The training-mean background lets advisors interpret contributions as “relative to a typical student,” and the log-odds values convert cleanly to probability deltas.
+  - It also keeps the door open for future non-linear models: the UI already accepts SHAP-style payloads, so upgrading the model won’t require a UX rewrite.
+
+- **Why not classic LIME?**
+  - LIME perturbs inputs and fits a surrogate. For LR, the surrogate equals the true model, so LIME adds sampling noise and tuning knobs (kernel width, sample size) without extra value.
+  - SHAP linear is deterministic, faster, and adheres to desirable axioms, making it more robust for advisors.
+
+- **Why not UMAP for explanations?**
+  - UMAP is dimensionality reduction, helpful for exploration (“who looks similar?”) but not a per-prediction rationale.
+  - It is stochastic and distance-distorting; can be misread as causal. We prefer showing clear global patterns (feature importance) and per-case reasons (local contributions).
+
+- **Why not PDP/ICE in the main flow?**
+  - Partial‑dependence/ICE plots are insightful but slow for interactive, per‑student use and harder to read for non‑technical staff.
+  - Our design goal is immediate, action‑oriented explanations; PDP/ICE can be added later as an advanced appendix if needed.
 
 ---
 
@@ -102,17 +121,18 @@ From the lecture materials, the following explanation questions are answered:
 
 ### 3.1 Backend (server/server.js)
 
-#### New Function: `calculateFeatureContributions()`
+#### New Function: `calculateShapContributions()`
 ```javascript
 - Normalizes student input data
 - Builds feature vector in model order
-- Calculates linear contribution: feature_value * coefficient
-- Returns contributions sorted by impact
+- Looks up SHAP background means (with_gender / no_gender)
+- Calculates SHAP value: coefficient × (value − mean)
+- Returns SHAP contributions plus base/output log-odds
 ```
 
 #### Enhanced Prediction Endpoint
 - Returns explanation object alongside prediction
-- Includes: type (lime), base_value (intercept), features with contributions
+- Includes: type "shap_linear", domain "logit", base/output values, features with SHAP contributions
 - Shows impact direction (increases/decreases)
 
 #### New Endpoint: `/functions/v1/global-explanations/:model_type`
@@ -153,14 +173,15 @@ FeatureContribution {
   name: string;           // Feature name
   value: number;          // Student's value for this feature
   weight: number;         // Model coefficient
-  contribution: number;   // value * weight
+  contribution: number;   // SHAP value (log-odds contribution)
   impact: 'increases' | 'decreases';
 }
 
 LocalExplanation {
-  type: string;           // "lime"
-  base_value: number;     // Model intercept
-  output_value: number;   // Linear combination before sigmoid
+  type: string;           // "shap_linear"
+  domain: 'logit';        // indicates log-odds space
+  base_value: number;     // Expected log-odds using training means
+  output_value: number;   // Student log-odds before sigmoid
   features: FeatureContribution[];
 }
 
@@ -176,15 +197,15 @@ GlobalExplanation {
 
 ## 4. Alignment with Course Concepts
 
-### 4.1 LIME (Local Interpretable Model-agnostic Explanations)
-- **Concept**: Approximate model behavior locally using simple, interpretable model
-- **Our Implementation**: For logistic regression, the "simple model" IS the actual model, so explanations are exact
-- **Formula**: `prediction ~= intercept + sum(feature_i * coefficient_i)`
-- **Advantage**: Users see the exact linear contribution of each feature to the prediction
+### 4.1 SHAP (SHapley Additive exPlanations)
+- **Concept**: Attribute prediction differences relative to a baseline using Shapley values; provides additive, locally accurate explanations.
+- **Our Implementation**: Linear SHAP for logistic regression with training-mean baseline: `φ_j = coef_j × (value_j − mean_j)`.
+- **Formula**: `logit(student) = base_value + Σ φ_j`; we also show approximate probability shifts.
+- **Advantage**: Baseline-centered, additive, model-agnostic in spirit (future-proof for non-linear models) while remaining exact for LR.
 
 ### 4.2 Model-Agnostic Approach
 - **Concept**: Explanation method works with any model type (not just our logistic regression)
-- **Our Implementation**: Feature contribution calculation is general and works for:
+- **Our Implementation**: SHAP calculation is general and works for:
   - Baseline model (with Gender)
   - Drop-Gender model (without Gender)
   - Reweighted model (fairness-adjusted coefficients)
@@ -194,7 +215,7 @@ GlobalExplanation {
 From lecture concepts:
 - **Transparency**: What features does the model use? [x] Input form shows all 12
 - **Interpretability**: Can humans understand the model? [x] Linear coefficients are directly interpretable
-- **Explainability**: Why specific predictions? [x] Feature contribution analysis explains individual predictions
+- **Explainability**: Why specific predictions? [x] SHAP contributions explain individual predictions relative to a baseline
 
 ### 4.4 Global vs. Local Explanations
 - **Global**: "What is the model's overall strategy?" -> Feature importance tab
@@ -286,6 +307,7 @@ For each prediction, advisors can now:
 - `src/components/LocalExplanation.tsx` - Local explanation display
 - `src/components/GlobalExplanation.tsx` - Global explanation display
 - `EXPLAINABILITY_REPORT.md` - This document
+- `server/shap_feature_mean.json` - Background feature means for SHAP
 
 ### Modified:
 - `server/server.js` - Added explanation endpoints and feature contribution calculation
