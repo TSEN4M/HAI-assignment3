@@ -327,8 +327,8 @@ To test the explainability system:
 
 1. **Local Explanations**: Make predictions and verify:
    - Protective factors and risk drivers are displayed, sorted by impact
-   - Contributions match feature_value * coefficient
-   - Color coding matches prediction direction (Graduate=green push, Dropout=red push)
+   - SHAP contributions match `coefficient × (value − background_mean)`
+   - Color/icon coding matches prediction direction (Graduate=green support, Dropout=red risk)
 
 2. **Global Explanations**: Check Model Explanations tab:
    - Features ranked by importance

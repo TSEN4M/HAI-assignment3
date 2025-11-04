@@ -113,6 +113,14 @@ export function LocalExplanationDisplay({
       0,
     ) || 1;
 
+  const shapByFeature = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const feature of explanation.features) {
+      map.set(feature.name, feature.contribution);
+    }
+    return map;
+  }, [explanation.features]);
+
   const protective = [...explanation.features]
     .filter((feature) => feature.contribution > 0)
     .sort((a, b) => Math.abs(b.contribution) - Math.abs(a.contribution));
@@ -121,22 +129,29 @@ export function LocalExplanationDisplay({
     .filter((feature) => feature.contribution < 0)
     .sort((a, b) => Math.abs(b.contribution) - Math.abs(a.contribution));
 
-  const presentNames = new Set(explanation.features.map((feature) => feature.name));
-  const missingSupports: Array<{ name: string; weight: number }> = [];
+  const missingSupports: Array<{ name: string; weight: number; shap?: number }> = [];
 
   if (studentInput && globalWeights.length) {
     for (const gw of globalWeights) {
-      if (gw.weight > 0 && gw.importance >= 0.5 && !presentNames.has(gw.feature)) {
+      if (gw.weight > 0 && gw.importance >= 0.5 && YES_NO_FEATURES.has(gw.feature)) {
         const key = featureKeyFromName(gw.feature);
         const raw = key ? (studentInput as any)[key] : undefined;
         if (to01(raw) === 0) {
-          missingSupports.push({ name: gw.feature, weight: gw.weight });
+          missingSupports.push({
+            name: gw.feature,
+            weight: gw.weight,
+            shap: shapByFeature.get(gw.feature) ?? undefined,
+          });
         }
       }
     }
   }
 
-  missingSupports.sort((a, b) => Math.abs(b.weight) - Math.abs(a.weight));
+  missingSupports.sort((a, b) => {
+    const aMag = Math.abs(a.shap ?? a.weight);
+    const bMag = Math.abs(b.shap ?? b.weight);
+    return bMag - aMag;
+  });
   const topMissing = missingSupports.slice(0, 3);
 
   const summary = useMemo(() => {
@@ -336,22 +351,28 @@ export function LocalExplanationDisplay({
           {!loadingWeights && topMissing.length === 0 && (
             <div className="text-xs text-gray-500">No important supports are missing.</div>
           )}
-          {topMissing.map((item) => (
-            <div
-              key={`missing-${item.name}`}
-              className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
-            >
-              <div className="flex items-center gap-2 text-sm text-gray-900">
-                <LifeBuoy className="w-4 h-4 text-amber-600" aria-hidden="true" />
-                <span>
-                  {formatFeatureName(item.name)}: <span className="text-gray-600">Not present yet</span>
-                </span>
+          {topMissing.map((item) => {
+            const shapPenalty = item.shap ?? 0;
+            const absPenalty = Math.abs(shapPenalty);
+            return (
+              <div
+                key={`missing-${item.name}`}
+                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
+              >
+                <div className="flex items-center gap-2 text-sm text-gray-900">
+                  <LifeBuoy className="w-4 h-4 text-amber-600" aria-hidden="true" />
+                  <span>
+                    {formatFeatureName(item.name)}: <span className="text-gray-600">Not present yet</span>
+                  </span>
+                </div>
+                <div className="text-xs px-2 py-1 rounded bg-gray-200 text-gray-800">
+                  {absPenalty > 0
+                    ? `absence costs ${formatNumber(absPenalty)} log-odds (${describeProbabilityShift(absPenalty)})`
+                    : `absence reduces graduation odds by ${formatNumber(Math.abs(item.weight))}`}
+                </div>
               </div>
-              <div className="text-xs px-2 py-1 rounded bg-gray-200 text-gray-800">
-                absence reduces graduation odds by {formatNumber(Math.abs(item.weight))}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
