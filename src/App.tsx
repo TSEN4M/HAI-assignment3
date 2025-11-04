@@ -122,13 +122,13 @@ function App() {
         </div>
 
         {activeTab === 'predict' ? (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] gap-8">
             <div className="bg-white rounded-lg shadow-lg p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-6">Student Information</h2>
               <StudentInputForm onSubmit={handlePrediction} loading={loading} />
             </div>
 
-            <div>
+            <div className="bg-white rounded-lg shadow-lg p-6">
               {prediction ? (
                 <PredictionResultDisplay
                   result={prediction}
@@ -137,14 +137,12 @@ function App() {
                   studentInput={lastInput || undefined}
                 />
               ) : (
-                <div className="bg-white rounded-lg shadow-lg p-6 border-2 border-dashed border-gray-300">
-                  <div className="text-center py-12 text-gray-500">
-                    <GraduationCap className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                    <p className="text-lg font-medium">No prediction yet</p>
-                    <p className="text-sm mt-2">
-                      Enter student information and click predict to see results
-                    </p>
-                  </div>
+                <div className="text-center py-12 text-gray-500 border-2 border-dashed border-gray-300 rounded-lg">
+                  <GraduationCap className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                  <p className="text-lg font-medium">No prediction yet</p>
+                  <p className="text-sm mt-2">
+                    Enter student information and click predict to see results
+                  </p>
                 </div>
               )}
             </div>
