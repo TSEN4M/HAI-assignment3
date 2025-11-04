@@ -143,10 +143,10 @@ From the lecture materials, the following explanation questions are answered:
 ### 3.2 Frontend (React Components)
 
 #### New Component: `LocalExplanationDisplay` (src/components/LocalExplanation.tsx)
-- Shows protective factors and risk drivers sorted by absolute impact
+- Shows protective factors and risk drivers sorted by absolute impact (top two visible by default with “Show all” toggles)
 - Fixed-length contribution tracks with proportional fill; value + bar on one line; impact text below
 - Color + icon coding (Shield = support, Warning = risk) for accessibility
-- Adds a concise narrative, advisor to‑do ideas, and “missing supports” inferred from global importance
+- Adds a concise narrative, advisor to‑do ideas, and “missing supports” derived from SHAP (falls back to global weights only when SHAP penalty is zero)
 - Formatted output: readable feature names and impact values
 
 #### New Component: `GlobalExplanationDisplay` (src/components/GlobalExplanation.tsx)
@@ -159,6 +159,7 @@ From the lecture materials, the following explanation questions are answered:
 - Integrates LocalExplanationDisplay
 - Shows local explanations within prediction result
 - Added guidance linking local to global explanations
+- “Use With Care” reminder moved to the left column (form) so advisors review caveats before submitting
 
 #### Updated App: Model Explanations Tab
 - New "Model Explanations" tab in main navigation
@@ -240,14 +241,16 @@ The system now guides users through understanding predictions:
 - **Fixed Tracks**: Contribution tracks are fixed length; fill shows strength for consistent comparison
 - **Readable Numbers**: Appropriate precision and units (e.g., %)
 - **Narrative & Guidance**: “Story in one sentence” + advisor to‑do ideas support action
+- **Progressive Disclosure**: Protective/risk sections show the top two factors by default with “Show all” toggles to reduce scroll fatigue
 
 ### 5.3 Actionability
 
 For each prediction, advisors can now:
-- See exactly which factors influenced the prediction
+- See exactly which factors influenced the prediction (with the most impactful surfaced first)
 - Understand the magnitude of each factor's impact
 - Compare against model-wide patterns (global explanations)
 - Identify intervention points (e.g., "clear debtor status")
+- Review “Use With Care” guidance directly under the form before submitting
 - Test "what-if" scenarios by changing inputs and re-running
 
 ---
