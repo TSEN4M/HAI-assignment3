@@ -129,29 +129,41 @@ export function LocalExplanationDisplay({
     .filter((feature) => feature.contribution < 0)
     .sort((a, b) => Math.abs(b.contribution) - Math.abs(a.contribution));
 
-  const missingSupports: Array<{ name: string; weight: number; shap?: number }> = [];
+  const missingSupports: Array<{ name: string; shap: number; weight: number }> = [];
 
-  if (studentInput && globalWeights.length) {
+  if (studentInput) {
+    for (const feature of explanation.features) {
+      if (!YES_NO_FEATURES.has(feature.name)) continue;
+      if (feature.weight <= 0) continue;
+      const key = featureKeyFromName(feature.name);
+      const raw = key ? (studentInput as any)[key] : undefined;
+      if (to01(raw) === 0 && feature.contribution < 0) {
+        missingSupports.push({
+          name: feature.name,
+          shap: feature.contribution,
+          weight: feature.weight,
+        });
+      }
+    }
+  }
+
+  if (!missingSupports.length && studentInput && globalWeights.length) {
     for (const gw of globalWeights) {
-      if (gw.weight > 0 && gw.importance >= 0.5 && YES_NO_FEATURES.has(gw.feature)) {
+      if (gw.weight > 0 && YES_NO_FEATURES.has(gw.feature)) {
         const key = featureKeyFromName(gw.feature);
         const raw = key ? (studentInput as any)[key] : undefined;
         if (to01(raw) === 0) {
           missingSupports.push({
             name: gw.feature,
+            shap: shapByFeature.get(gw.feature) ?? 0,
             weight: gw.weight,
-            shap: shapByFeature.get(gw.feature) ?? undefined,
           });
         }
       }
     }
   }
 
-  missingSupports.sort((a, b) => {
-    const aMag = Math.abs(a.shap ?? a.weight);
-    const bMag = Math.abs(b.shap ?? b.weight);
-    return bMag - aMag;
-  });
+  missingSupports.sort((a, b) => Math.abs(b.shap) - Math.abs(a.shap));
   const topMissing = missingSupports.slice(0, 3);
 
   const summary = useMemo(() => {
@@ -352,7 +364,7 @@ export function LocalExplanationDisplay({
             <div className="text-xs text-gray-500">No important supports are missing.</div>
           )}
           {topMissing.map((item) => {
-            const shapPenalty = item.shap ?? 0;
+            const shapPenalty = item.shap;
             const absPenalty = Math.abs(shapPenalty);
             return (
               <div
@@ -367,8 +379,8 @@ export function LocalExplanationDisplay({
                 </div>
                 <div className="text-xs px-2 py-1 rounded bg-gray-200 text-gray-800">
                   {absPenalty > 0
-                    ? `absence costs ${formatNumber(absPenalty)} log-odds (${describeProbabilityShift(absPenalty)})`
-                    : `absence reduces graduation odds by ${formatNumber(Math.abs(item.weight))}`}
+                    ? `Absence costs ${formatNumber(absPenalty)} log-odds (${describeProbabilityShift(absPenalty)})`
+                    : 'Absence reduces graduation odds.'}
                 </div>
               </div>
             );
@@ -380,7 +392,7 @@ export function LocalExplanationDisplay({
         <p className="font-semibold mb-1">What helps most</p>
         <p>
           {topMissing.length > 0
-            ? `Focusing on ${formatFeatureName(topMissing[0].name)} would move the prediction toward graduation the most (estimated impact: +${formatNumber(topMissing[0].weight)}).`
+            ? `Focusing on ${formatFeatureName(topMissing[0].name)} would move the prediction toward graduation the most (estimated impact: +${formatNumber(Math.abs(topMissing[0].shap))} log-odds, ${describeProbabilityShift(Math.abs(topMissing[0].shap))}).`
             : 'Reinforce the current protective factors by continuing academic support and regular check-ins.'}
         </p>
       </div>
