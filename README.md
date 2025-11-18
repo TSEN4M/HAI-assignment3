@@ -320,44 +320,7 @@ For each prediction, advisors can now:
 
 ---
 
-## 8. Implementation Checklist
-
-- [x] Local explanations showing feature contributions for each prediction
-- [x] Global explanations showing feature importance across all students
-- [x] Both explanation types provided as required
-- [x] Addresses all 8 user explainability questions from course
-- [x] Clear UI showing "Why this prediction" (local) and "How the model thinks" (global)
-- [x] Integrated into prediction workflow
-- [x] Works with all 4 model variants (baseline, gender-blind, reweighted, calibrated)
-- [x] Transparent limitations and honest about what explanations show/don't show
-- [x] Actionable guidance for academic advisors
-- [x] Maintains fairness context from Assignment 3
-
----
-
-## 9. Files Modified/Created
-
-### Created:
-
-- `src/components/LocalExplanation.tsx` - Local explanation display
-- `src/components/GlobalExplanation.tsx` - Global explanation display
-- `EXPLAINABILITY_REPORT.md` - This document
-- `server/shap_feature_mean.json` - Background feature means for SHAP
-
-### Modified:
-
-- `server/server.js` - Added explanation endpoints and feature contribution calculation
-- `src/types/index.ts` - Added explanation data types and `MODEL_LABELS` for consistent model names
-- `src/components/PredictionResult.tsx` - Integrated local explanations and cautionary copy
-- `src/components/LocalExplanation.tsx` - Accessibility icons, fixed tracks, narrative + to‑do ideas, missing supports
-- `src/components/GlobalExplanation.tsx` - Impact labels, top supports/risks, advisor guidance
-- `src/components/ModelPerformance.tsx` - Quick takeaway, fairness badges; uses centralized labels
-- `src/App.tsx` - Added Model Explanations tab and default selection to Reweighted model
-- `src/main.tsx` - Removed debug logging
-
----
-
-## 10. Testing & Validation
+## 8. Testing & Validation
 
 To test the explainability system:
 
